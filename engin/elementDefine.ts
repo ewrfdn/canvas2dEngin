@@ -15,6 +15,7 @@ abstract class elementObject {
     z: number;
     Vx: number;
     Vy: number;
+    offscreenCache: any;
     canvas: any
     abstract draw(): void;
     move(dt: number) {
@@ -25,15 +26,16 @@ abstract class elementObject {
         this.move(dt);
         this.onStep(dt);
     }
-    constructor(info: elementInfo, canvas: any) {
+    constructor(info: elementInfo, canvas: any,offscreenCache:any) {
         this.width = info.w || 100;
         this.height = info.h || 100;
-        this.Vx = info.Vx || 100 ;
-        this.Vy = info.Vy || 100 ;
+        this.Vx = info.Vx || 0 ;
+        this.Vy = info.Vy || 0 ;
         this.x = info.x || 0;
         this.y = info.y || 0;
         this.z = info.z || 0
         this.canvas = canvas;
+        this.offscreenCache=offscreenCache;
         this.created();
     }
     destoryed(elementObj: elementObject,) {
@@ -104,8 +106,8 @@ class rectangleObject extends elementObject {
     }
     onStep(dt: number) {
     }
-    constructor(info: any, canvas: any) {
-        super(info, canvas)
+    constructor(info: any, canvas: any,offScreenCanvas:any) {
+        super(info, canvas,offScreenCanvas)
         this.color = info.color || "rgb(245, 240, 240)"
     }
 }
@@ -129,16 +131,15 @@ class rectangleObject extends elementObject {
 //  }
 class spriteObject extends elementObject {
     sprite: any;
-    offscreen: number;
     draw() {
-        if (!this.canvas.offScreen[this.offscreen].isBuild) {
-            this.canvas.offScreen[this.offscreen].isBuild = true;
-            this.canvas.offScreen[this.offscreen].canvas.width = this.width;
-            this.canvas.offScreen[this.offscreen].canvas.height = this.height;
-            this.canvas.offScreen[this.offscreen].canvas.getContext('2d').drawImage(this.sprite.Img, this.sprite.sx, this.sprite.sy,
+        if (!this.offscreenCache.isBuild) {
+            this.offscreenCache.isBuild = true;
+            this.offscreenCache.canvas.width = this.width;
+            this.offscreenCache.canvas.height = this.height;
+            this.offscreenCache.canvas.getContext('2d').drawImage(this.sprite.Img, this.sprite.sx, this.sprite.sy,
                 this.sprite.w, this.sprite.h, 0, 0, this.width, this.height);
         }
-        this.canvas.ctx.drawImage(this.canvas.offScreen[this.offscreen].canvas, this.x, this.y)
+        this.canvas.ctx.drawImage(this.offscreenCache.canvas, this.x, this.y)
     }
     beforeDestoryed() {
 
@@ -155,9 +156,8 @@ class spriteObject extends elementObject {
     onStep(dt: number) {
 
     }
-    constructor(info: any, sprite: any, offscreen: number, canvas: any) {
-        super(info, canvas);
-        this.offscreen = offscreen;
+    constructor(info: any, sprite: any, offscreenCanvas: any, canvas: any) {
+        super(info, canvas,offscreenCanvas);
         this.sprite = sprite;
     }
 }
@@ -207,13 +207,87 @@ class spriteObject extends elementObject {
 class textObject extends elementObject {
     color: string;
     fontSize: number;
+    fontFamily:String
     borderColor: string;
+    text:string;
+    bordered:boolean;
     borderWidth: number;
+    autoFeed:boolean;
+    background:string;
+    textAlign:string;
     draw(): void {
+        if (!this.offscreenCache.isBuild) {
+            this.offscreenCache.isBuild = true;
+            this.offscreenCache.canvas.width = this.width;
+            this.offscreenCache.canvas.height = this.height;
+            let ctx=this.offscreenCache.canvas.getContext('2d')
+            if(this.bordered){
+                ctx.strokeStyle=this.borderColor;
+                ctx.lineWidth=this.borderWidth;
+                ctx.strokeRect(0,0,this.width,this.height)
+            }
+            if(this.background){
+                ctx.fillStyle=this.background;
+                ctx.fillRect(this.borderWidth,this.borderWidth,this.width-this.borderWidth*2,this.height-this.borderWidth*2)
+            }
+            ctx.font=this.fontSize+"px " +this.fontFamily;
+            ctx.textAlign=this.textAlign;
+            console.log(this.fontSize+" px " +this.fontFamily)
+            ctx.fillStyle=this.color;
+            if(this.autoFeed){// 自动换行
+                let arr:string[] =this.getAutoFeed();
+                console.log(arr)
+                arr.forEach((element,index)=>{
+                    if(this.textAlign==="center"){
+                        ctx.fillText(element,this.width/2,(this.height/2-(this.fontSize*arr.length-1)/2+this.fontSize*(index+1)))
+                        }else if(this.textAlign==="left"){
+                        ctx.fillText(element,0,(0+2*this.fontSize*index)/2)
+                        }else if(this.textAlign="right"){
+                        ctx.fillText(element,this.width,(this.height/2+2*this.fontSize*index)/2);
+                        }
+                })
+            }else{
+            if(this.textAlign==="center"){
+                ctx.fillText(this.text,this.width/2,(this.height+this.fontSize/2)/2);
+            }else if(this.textAlign==="left"){
+            ctx.fillText(this.text,0,(this.height+this.fontSize/2)/2);
 
+            }else if(this.textAlign="right"){
+            ctx.fillText(this.text,this.width,(this.height+this.fontSize/2)/2);
+            }
+
+            }
+            console.log(this.offscreenCache)
+        }
+        this.canvas.ctx.drawImage(this.offscreenCache.canvas, this.x, this.y)
     }
     beforeDestoryed() {
 
+    }
+    getAutoFeed(){
+        let res:string[]=[],widthCount=0,start=0;
+        for(let i=0;i<this.text.length;i++){
+            let unicode=this.text.charCodeAt(i);
+            if((unicode>=0x4e00 && unicode<0x9fa5)||(unicode>=65281&&unicode<=65374)||unicode===12288){
+                if(widthCount+this.fontSize>this.width){
+                    res.push(this.text.substr(start,i-start-1))
+                    start=i-1;
+                    widthCount=0
+                }
+                widthCount+=this.fontSize;
+            }else{
+                if(widthCount+this.fontSize/2>this.width){
+                    res.push(this.text.substr(start,i-start-1))
+                    start=i-1;
+                    widthCount=0
+                }
+                widthCount+=this.fontSize/2;
+            }
+        }
+        if(start<this.text.length){
+            res.push(this.text.substr(start,this.text.length-start))
+        }
+        return res
     }
     afterDestoryed() {
 
@@ -221,17 +295,21 @@ class textObject extends elementObject {
     created() {
     }
     onStep(dt: number) {
-
     }
-    constructor(info: any, canvas: any) {
-        super(info, canvas)
-        this.color = info.color;
-        this.fontSize = info.fontSize;
-        this.borderColor = info.fontSize;
-        this.borderWidth = info.borderWidth;
+    constructor(info: any,offScreen:any, canvas: any) {
+        super(info, canvas,offScreen)
+        this.color = info.color||"#000";
+        this.fontFamily=info.fontFamily|| "微软雅黑";
+        this.textAlign=info.textAlign||"center"
+        this.fontSize = info.fontSize||20;
+        this.borderColor = info.borderColor||"#000";
+        this.borderWidth = info.borderWidth||1;
+        this.text=info.text;
+        this.autoFeed=info.autoFeed||false;
+        this.bordered=info.bordered||false;
+        this.background=info.background||""
     }
 }
-
 export default {
     textObject,
     // seqSpriteObject,

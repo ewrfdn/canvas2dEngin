@@ -16,69 +16,38 @@
     <div id="main">
 
     </div>
-    <script src="./dist/engin.js"></script>
+    <script src="https://unpkg.com/requirejs@2.3.6/require.js" ></script>
     <script>
-        var img = new Image()
-        var img1 = new Image()
-
-        img.src = "./src/sprite/firepsd.png"
-        img1.src = "./src/sprite/script0.png"
-
-
-        var spite = {
-            Img: img,
-            sx: 200,
-            sy: 500,
-            w: 100,
-            h: 100,
-        }
-        var info = {
-            Vx: 220,
-            Vy: 220,
-            w: 10,
-            h: 10,
-
-        }
-        var info2 = {
-            Vx: 220,
-            Vy: 220,
-            r: 5
-
-        }
-        var enemyShip0 = {
-            Img: img1,
-            sx: 400,
-            sy: 300,
-            w: 200,
-            h: 300
-        }
-
-
-        var newBoard = new canvas2d("main", 1300, 700)
-        var b = newBoard.createElement("spite", info, spite)
-        var r = function() {
-            this.step = function(dt, canvas) {
-                if (this.x > canvas.width || this.x < 0) {
-                    if (this.x < 0) {
-                        this.x = 0;
-                    } else {
-                        this.x = canvas.width - this.width;
-                    }
-                    this.Vx = -this.Vx;
-                }
-                if (this.y > canvas.height || this.y < 0) {
-                    if (this.y < 0) {
-                        this.y = 0;
-                    } else {
-                        this.y = canvas.height - this.height;
-                    }
-                    this.Vy = -this.Vy;
-                }
-                this.move(dt);
-            }
-        }
-        r.prototype = newBoard.createElement('round', info2)
+        var newBoard=null;
+        require(["./dist/engin/engin.js"],function(canvas2d){
+            console.log(canvas2d)
+        newBoard = new canvas2d.default("main", 1300, 1700)
+        // var newBoard={}
+        var b = newBoard.createElement("text", info)
+        // var r = function() {
+        //     this.step = function(dt, canvas) {
+        //         if (this.x > canvas.width || this.x < 0) {
+        //             if (this.x < 0) {
+        //                 this.x = 0;
+        //             } else {
+        //                 this.x = canvas.width - this.width;
+        //             }
+        //             this.Vx = -this.Vx;
+        //         }
+        //         if (this.y > canvas.height || this.y < 0) {
+        //             if (this.y < 0) {
+        //                 this.y = 0;
+        //             } else {
+        //                 this.y = canvas.height - this.height;
+        //             }
+        //             this.Vy = -this.Vy;
+        //         }
+        //         this.move(dt);
+        //     }
+        // }
+        // r.prototype = newBoard.createElement('round', info2)
         var c = function() {
+            this.name="22"
             this.onStep = function(dt) {
                 if (this.x > this.canvas.width || this.x < 0) {
                     if (this.x < 0) {
@@ -101,16 +70,57 @@
         c.prototype = b;
         // var au = new audio("./src/audio/shot.mp3", )
         // c.prototype.audio = au;
-        var col = new collision(1, "single")
-        c.prototype.col = col;
-        for (var i = 0; i < 4000; i++) {
+        // var col = new collision(1, "single")
+        // c.prototype.col = col;
+        for (var i = 0; i < 2; i++) {
             var temp = new c();
-            temp.Vx = ~~(Math.random() * 400 + 200)
-            temp.Vy = ~~(Math.random() * 400 + 200)
             temp.x = ~~(Math.random() * 1000)
             temp.y = ~~(Math.random() * 600)
             newBoard.push(temp)
+            console.log(temp)
         }
+        console.log(newBoard)
+        })
+        var img = new Image()
+        var img1 = new Image()
+
+        img.src = "./src/sprite/firepsd.png"
+        img1.src = "./src/sprite/script0.png"
+
+
+        var spite = {
+            Img: img,
+            sx: 200,
+            sy: 500,
+            w: 100,
+            h: 100,
+        }
+        var info = {
+            Vx: 0,
+            Vy: 0,
+            w: 100,
+            h: 200,
+            text:"一二三五，343434343432324sds我是首都华盛顿首都华盛顿是的撒可视对讲撒谎的撒旦按时打卡撒谎的和爱说大话dsa",
+            fontSize:20,
+            bordered:true,
+            autoFeed:true
+
+        }
+        var info2 = {
+            Vx: 220,
+            Vy: 220,
+            r: 5
+
+        }
+        var enemyShip0 = {
+            Img: img1,
+            sx: 400,
+            sy: 300,
+            w: 200,
+            h: 300
+        }
+
+
         var cl = function() {
             newBoard.loop()
         }
