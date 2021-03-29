@@ -1,7 +1,5 @@
-define(["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    var canvasDiv = document.createElement("div");
-    canvasDiv.id = "canvasDiv";
-    document.body.appendChild(canvasDiv);
-});
+"use strict";
+// import canvas2d from "./engin/engin"
+// let canvasDiv = document.createElement("div")
+// canvasDiv.id="canvasDiv"
+// document.body.appendChild(canvasDiv)

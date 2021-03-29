@@ -1,4 +1,6 @@
-import element from "./elementDefine"
+import element from "./elementDefine/bacicElementDefine"
+import advanceElement from "./elementDefine/advanceElementDefine"
+import {basicElementInterface,spriteElementInterface,textElementInterface} from "./elementDefineInterface/basicElementDefineInterface"
 export default class canvas2d {
     x: number = 0;
     y: number = 0;
@@ -9,6 +11,7 @@ export default class canvas2d {
     rate: number = 0;
     root: any;
     canvas: any;
+    clickThrough: boolean = false
     lastTime: number = 0;
     maxTime: number = 1 / 30;
     offScreen: any[] = [];
@@ -16,6 +19,209 @@ export default class canvas2d {
     interval: number = 0;
     gameBoard: any[] = [];
     background: any[] = [];
+    allowDrop(event: any) {
+        event.preventDefault()
+    }
+    stopLoop(){
+        window.cancelAnimationFrame(this.t)
+    }
+    enableKeyupEventLisener() {//键盘事件监听
+        document.addEventListener("keyup", (e: any) => {
+            if(e.key==='Delete'){
+                this.gameBoard=this.gameBoard.filter(element =>{
+                    return !element.focused
+                })
+            }
+        })
+
+    }
+    enableClickEventLisener() {
+        console.log("23-----3")
+        console.log(this.canvas)
+        this.root.ondragover = this.allowDrop;
+        this.root.style.overflow = "hidden"
+        this.root.style.position = 'relative'
+        this.canvas.addEventListener("click", (e: any) => {
+            console.log(this.canvas.getBoundingClientRect())
+            let left = e.clientX - this.canvas.getBoundingClientRect().x
+            let top = e.clientY - this.canvas.getBoundingClientRect().y
+            let clickFlag = true;
+            let controlDiv = document.getElementById("control-div")
+            if (controlDiv) {
+                this.root.removeChild(controlDiv)
+            }
+            console.log(left, top)
+            if (this.clickThrough) {
+                for (let i = this.gameBoard.length - 1; i > -1; i--) {
+                    if (top > this.gameBoard[i].y && top < (this.gameBoard[i].y + this.gameBoard[i].height) && left > this.gameBoard[i].x && (this.gameBoard[i].x + this.gameBoard[i].width) > left) {
+                        this.gameBoard[i].focused = true;
+                    } else {
+                        this.gameBoard[i].focused = false;
+
+                    }
+                }
+            } else {
+                for (let i = this.gameBoard.length - 1; i > -1; i--) {
+                    if (clickFlag && top > this.gameBoard[i].y && top < (this.gameBoard[i].y + this.gameBoard[i].height) && left > this.gameBoard[i].x && (this.gameBoard[i].x + this.gameBoard[i].width) > left) {
+                        this.gameBoard[i].focused = true;
+                        clickFlag = false;
+                        this.createHtmlDom(i);
+                    } else {
+                        this.gameBoard[i].focused = false;
+                    }
+                }
+            }
+        })
+
+    }
+    createHtmlDom(elementIndex: number) {
+        let appendDiv = document.createElement('div')
+        appendDiv.style.position = "absolute";
+        appendDiv.id = "control-div"
+        appendDiv.style.width = this.gameBoard[elementIndex].width;
+        appendDiv.style.height = this.gameBoard[elementIndex].height;
+        appendDiv.style.left = this.gameBoard[elementIndex].x;
+        appendDiv.style.top = this.gameBoard[elementIndex].y;
+        appendDiv.style.border = "#0F0 solid 1px"
+        appendDiv.setAttribute("bindIndex", elementIndex.toString());
+        appendDiv.draggable = true;
+        appendDiv.style.cursor = "move";
+        appendDiv.ondragstart = (el:any)=>this.elementOnDragStart(el,this)
+        appendDiv.ondragend = (el) => this.elementOnDragEnd(el, this.gameBoard[elementIndex],this)
+        appendDiv.ondrag = (el) => this.elementOnDrag(el, this.gameBoard[elementIndex])
+        this.root.appendChild(appendDiv);
+        appendDiv.appendChild(this.createControlPoint(0, this.gameBoard[elementIndex].height / 2, 'w-resize', elementIndex))
+        appendDiv.appendChild(this.createControlPoint(this.gameBoard[elementIndex].width, this.gameBoard[elementIndex].height / 2, 'e-resize', elementIndex))
+        appendDiv.appendChild(this.createControlPoint(this.gameBoard[elementIndex].width / 2, 0, 'n-resize', elementIndex))
+        appendDiv.appendChild(this.createControlPoint(this.gameBoard[elementIndex].width / 2, this.gameBoard[elementIndex].height, 's-resize', elementIndex))
+    }
+    createControlPoint(x: number, y: number, cursorType: string, elementIndex: number) {
+        let controlPoint = document.createElement('div')
+        controlPoint.style.width = "10px"
+        controlPoint.style.height = '10px'
+        controlPoint.style.borderRadius = "5px"
+        controlPoint.style.border = "#666 solid 1px"
+        controlPoint.style.position = "absolute"
+        controlPoint.style.top = y - 5 + "px"
+        controlPoint.style.left = x - 5 + "px"
+        controlPoint.draggable = true;
+        controlPoint.id = cursorType
+        controlPoint.style.cursor = cursorType;
+        controlPoint.ondragstart = (el)=>this.onResizeStart(el,this)
+        controlPoint.ondrag = (el: any) => this.onResize(el, this.gameBoard[elementIndex], cursorType)
+        controlPoint.ondragend = (el: any) => this.onResizeEnd(el, this.gameBoard[elementIndex], cursorType,this)
+        return controlPoint
+    }
+    elementOnDragStart(event: any,that:any) {
+        // event.preventDefault()
+        // event.dataTransfer.dropEffect = "copy";
+        event.cancelBubble = true;
+        console.log(event)
+        // that.loop()
+    }
+    onResizeStart(event: any,that:any) {
+        // that.loop()
+        // event.dataTransfer.dropEffect = "copy";
+        event.cancelBubble = true;
+        console.log(event.target.id)
+        event.dataTransfer.setData("text/plain", event.target.id)
+    }
+    onResize(event: any, changElement: any, cursorType: string) {
+        event.cancelBubble = true;
+        // if(cursorType==="n-resize"){
+        //     changElement.height+=(event.offsetY/100)
+        //     if(changElement.height<50){
+        //         changElement.height=50
+        //     }
+        // }else if(cursorType=="e-resize"){
+        //     changElement.width+=(event.offsetX/100)
+        //     if(changElement.width<50){
+        //         changElement.width=50
+        //     }
+        // }
+
+    }
+    onResizeEnd(event: any, changElement: any, cursorType: string,that:any) {
+        event.cancelBubble = true;
+        console.log(event)
+        console.log(event.dataTransfer.getData("text"))
+        let dom = document.getElementById(event.dataTransfer.getData("Text"))
+        if (dom) {
+            dom.style.left = event.clientX;
+            dom.style.top = event.clientY
+            changElement.x = event.clientX - changElement.width / 2
+            changElement.y = event.clientY - changElement.height / 2
+            // dom.style.left =changElement.x.toString();
+            // dom.style.top = changElement.y.toString()
+        }
+        if (cursorType === "n-resize") {
+            console.log(event.offsetY)
+            changElement.height -= event.offsetY
+            changElement.y += event.offsetY
+            if (changElement.height < 50) {
+                changElement.height = 50
+            }
+        } else if (cursorType == "e-resize") {
+            changElement.width += event.offsetX
+            if (changElement.width < 50) {
+                changElement.width = 50
+            }
+        } else if (cursorType == "w-resize") {
+            changElement.width -= event.offsetX
+            changElement.x += event.offsetX
+            if (changElement.width < 50) {
+                changElement.width = 50
+            }
+        } else if (cursorType == "s-resize") {
+            changElement.height += event.offsetY
+            if (changElement.width < 50) {
+                changElement.width = 50
+            }
+        }
+        let typeList = [{ key: "s-resize", x: changElement.width / 2, y: changElement.height },
+        { key: "e-resize", x: changElement.width,y: changElement.height / 2 }, 
+        { key: "n-resize", x: changElement.width / 2, y: 0 }, 
+        { key: "w-resize", x: 0, y: changElement.height / 2 }]
+        typeList.forEach(ele => {
+            let dom = document.getElementById(ele.key)
+            if (dom) {
+                dom.style.top = ele.y - 5 + "px"
+                dom.style.left = ele.x - 5 + "px"
+            }
+        })
+        dom = document.getElementById('control-div')
+        if (dom) {
+            dom.style.width = changElement.width;
+            dom.style.height = changElement.height;
+        }
+        // window.setInterval(()=>{
+        //     that.stopLoop()
+        // },5000)
+
+    }
+    elementOnDrag(event: any, changElement: any) {
+        event.preventDefault()
+        event.cancelBubble = true;
+        changElement.x = event.clientX - changElement.width / 2
+        changElement.y = event.clientY - changElement.height / 2
+    }
+    elementOnDragEnd(event: any, changElement: any,that:any) {
+        event.cancelBubble = true;
+        let dom = document.getElementById('control-div')
+        if (dom) {
+            dom.style.left = event.clientX;
+            dom.style.top = event.clientY
+            changElement.x = event.clientX - changElement.width / 2
+            changElement.y = event.clientY - changElement.height / 2
+            dom.style.left = changElement.x.toString();
+            dom.style.top = changElement.y.toString()
+        }
+        // window.setInterval(()=>{
+        //     that.stopLoop()
+        // },5000)
+    }
+    disableClickEventLisener() {
+    }
     frameRate(dt: number) {
         this.interval += dt;
         if (this.interval > 2) {
@@ -45,20 +251,20 @@ export default class canvas2d {
             this.gameBoard.splice(p, 1);
         }
     }
-    createElement(type: string, info: object, sprite?: any): object {
+    createElement(type: string, info: basicElementInterface): object {
         var obj: object = {}
         if (type === "round") {
             //    this.offScreen.push(new offscreenCanvas(document.createElement('canvas')))
             //    obj=new element.roundObject(info,this.offScreen.length-1)
-        } else if (type === "spite" && sprite !== undefined) {
-            if (sprite.targerFrame) {
-                // obj=new element.seqSpriteObject(info,sprite,this)
+        } else if (type === "spite" ) {
+            // if (info.targerFrame) {
+            //     // obj=new element.seqSpriteObject(info,sprite,this)
 
-            } else {
-                let offScreenCanavs=new offscreenCanvas()
+            // } else {
+                let offScreenCanavs = new offscreenCanvas()
                 this.offScreen.push(offScreenCanavs)
-                obj = new element.spriteObject(info, sprite, offScreenCanavs, this)
-            }
+                obj = new element.spriteObject(info,offScreenCanavs, this)
+            // }
         } else if (type === "rect") {
             // obj=new element.rectangleObject(info,this)
         }
@@ -66,16 +272,23 @@ export default class canvas2d {
         //     obj=new element.rectangleObject(info)
         // }
         else if (type === "text") {
-            let offscreenCache=new offscreenCanvas()
+            let offscreenCache = new offscreenCanvas()
             this.offScreen.push(offscreenCache)
-            obj = new element.textObject(info,offscreenCache, this)
+            obj = new element.textObject(info, offscreenCache, this)
+        }
+        else if (type === "barcode") {
+            let offscreenCache = new offscreenCanvas()
+            this.offScreen.push(offscreenCache)
+            obj = new advanceElement.barcodeObject(info, offscreenCache, this)
         }
         return obj
     }
     constructor(el: string, width: number, height: number) {
         this.canvas = document.createElement("canvas");
+        this.canvas.id = "mainCanvas"
         this.canvas.width = width;
         this.canvas.height = height;
+        this.canvas.style.border = "solid 1px #666"
         this.width = width;
         this.height = height;
         this.root = document.getElementById(el)
@@ -107,7 +320,35 @@ export default class canvas2d {
         })
 
     }
+    public gengratorImg={
+
+    }
+    public  getElementToJson(){
+        let resList:Array<basicElementInterface>=[]
+        this.gameBoard.forEach(e=>{
+            let res:any= {}
+            res.w=e.width;
+            res.h=e.height;
+            res.x=e.x;
+            res.y=e.y;
+            res.z=e.z;
+            if(e instanceof element.spriteObject){
+                res.type="sprite";
+                res.spiteInfo=res.spiteInfo;
+            }else if(e instanceof element.textObject){
+                res.type="text"
+                res.bordered=e.bordered;
+                res.borderWidth=e.borderWidth;
+                res.textAligne=e.textAlign;
+                res.color=e.color;
+                res.background=e.borderWidth;
+            }
+            resList.push(res)
+        })
+        console.log(resList)
+    }
 }
+
 class audio {
     el: any;
     currentTime: number = 0;
@@ -182,6 +423,7 @@ class offscreenCanvas {
         this.canvas = document.createElement('canvas');
     }
 }
+
 
 
 
