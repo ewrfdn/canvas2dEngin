@@ -6,9 +6,10 @@
     z: number;
     Vx: number;
     Vy: number;
+    type:string,
 }
 export interface spriteElementInterface extends basicElementInterface{
-    spiteInfo:{
+    spriteInfo:{
         Img: any,
         sx: number,
         sy: number,

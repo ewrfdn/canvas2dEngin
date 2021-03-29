@@ -6,6 +6,8 @@ var __extends = (this && this.__extends) || (function () {
         return extendStatics(d, b);
     };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -16,7 +18,6 @@ define(["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     var elementObject = /** @class */ (function () {
         function elementObject(info, canvas, offscreenCache) {
-            this.changFlage = false;
             this._width = info.w || 100;
             this._height = info.h || 100;
             this.Vx = info.Vx || 0;
@@ -107,8 +108,7 @@ define(["require", "exports"], function (require, exports) {
         __extends(spriteObject, _super);
         function spriteObject(info, offscreenCanvas, canvas) {
             var _this = _super.call(this, info, canvas, offscreenCanvas) || this;
-            _this.sprite = info.spiteInfo;
-            console.log(info);
+            _this.sprite = info.spriteInfo;
             return _this;
         }
         spriteObject.prototype.onDraw = function (ctx) {
@@ -247,7 +247,7 @@ define(["require", "exports"], function (require, exports) {
         });
         Object.defineProperty(textObject.prototype, "background", {
             get: function () {
-                return this._text;
+                return this._background;
             },
             set: function (background) {
                 this._background = background;

@@ -22,7 +22,6 @@ abstract class elementObject {
     z: number;
     Vx: number;
     Vy: number;
-    changFlage: boolean = false
     offscreenCache: any;
     canvas: any
     draw() {
@@ -115,8 +114,7 @@ class spriteObject extends elementObject {
     }
     constructor(info: any, offscreenCanvas: any, canvas: any) {
         super(info, canvas, offscreenCanvas);
-        this.sprite = info.spiteInfo;
-        console.log(info)
+        this.sprite = info.spriteInfo;
     }
 }
 class textObject extends elementObject {
@@ -194,7 +192,7 @@ class textObject extends elementObject {
     }
     private _background: string;
     public get background() {
-        return this._text
+        return this._background
     }
     public set background(background: string) {
         this._background = background;

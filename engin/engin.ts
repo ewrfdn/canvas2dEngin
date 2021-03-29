@@ -251,12 +251,12 @@ export default class canvas2d {
             this.gameBoard.splice(p, 1);
         }
     }
-    createElement(type: string, info: basicElementInterface): object {
+    createElement(info: basicElementInterface): object {
         var obj: object = {}
-        if (type === "round") {
+        if (info.type === "round") {
             //    this.offScreen.push(new offscreenCanvas(document.createElement('canvas')))
             //    obj=new element.roundObject(info,this.offScreen.length-1)
-        } else if (type === "spite" ) {
+        } else if (info.type === "sprite" ) {
             // if (info.targerFrame) {
             //     // obj=new element.seqSpriteObject(info,sprite,this)
 
@@ -265,23 +265,28 @@ export default class canvas2d {
                 this.offScreen.push(offScreenCanavs)
                 obj = new element.spriteObject(info,offScreenCanavs, this)
             // }
-        } else if (type === "rect") {
+        } else if (info.type === "rect") {
             // obj=new element.rectangleObject(info,this)
         }
         // else if(type==="triangel"){
         //     obj=new element.rectangleObject(info)
         // }
-        else if (type === "text") {
+        else if (info.type === "text") {
             let offscreenCache = new offscreenCanvas()
             this.offScreen.push(offscreenCache)
             obj = new element.textObject(info, offscreenCache, this)
         }
-        else if (type === "barcode") {
+        else if (info.type === "barcode") {
             let offscreenCache = new offscreenCanvas()
             this.offScreen.push(offscreenCache)
             obj = new advanceElement.barcodeObject(info, offscreenCache, this)
         }
         return obj
+    }
+    addElements(elementList:Array<basicElementInterface>):void{
+        elementList.forEach(e=>{
+            this.push(this.createElement(e))
+        })
     }
     constructor(el: string, width: number, height: number) {
         this.canvas = document.createElement("canvas");
@@ -296,7 +301,7 @@ export default class canvas2d {
         this.ctx = this.canvas.getContext('2d')
     }
     loop() {
-        var dt = this.lastTime
+        let dt = this.lastTime
         this.lastTime = new Date().getTime()
         dt = (this.lastTime - dt) / 1000;
         let tempDt = dt;
@@ -320,10 +325,33 @@ export default class canvas2d {
         })
 
     }
-    public gengratorImg={
-
+    public  gengratorImg(scale:number):any{
+        if(scale==undefined||scale<0){
+            scale=1
+        }
+        this.stopLoop()
+        this.canvas.width=this.width*scale;
+        this.canvas.height=this.height*scale;
+        if(scale!=1){
+            this.gameBoard.forEach(item=>{
+                item.x=item.x*scale;
+                item.y=item.y*scale;
+                item.width=item.width*scale;
+                item.height=item.height*scale;
+                if(item instanceof element.textObject){
+                    item.fontSize=item.fontSize*scale;
+                    item.borderWidth=item.borderWidth;
+                }
+            })
+        }
+        this.gameBoard.forEach(element=>{
+            element.draw()
+        })
+        let  image = new Image();
+	    image.src = this.canvas.toDataURL("image/png");
+	return image;
     }
-    public  getElementToJson(){
+    public  getElementToJson():Array<basicElementInterface>{
         let resList:Array<basicElementInterface>=[]
         this.gameBoard.forEach(e=>{
             let res:any= {}
@@ -332,56 +360,30 @@ export default class canvas2d {
             res.x=e.x;
             res.y=e.y;
             res.z=e.z;
+            console.log(e.background)
             if(e instanceof element.spriteObject){
                 res.type="sprite";
-                res.spiteInfo=res.spiteInfo;
+                res.spriteInfo=res.sprite;
             }else if(e instanceof element.textObject){
                 res.type="text"
                 res.bordered=e.bordered;
-                res.borderWidth=e.borderWidth;
+                res.text=e.text;
                 res.textAligne=e.textAlign;
                 res.color=e.color;
-                res.background=e.borderWidth;
+                res.borderColor=e.borderColor;
+                res.borderWidth=e.borderWidth;
+                res.fontFamily=e.fontFamily;
+                res.fontWidth=e.fontWidth;
+                res.fontSize=e.fontSize;
+                res.background=e.background;
             }
             resList.push(res)
         })
-        console.log(resList)
+        console.log(JSON.stringify(resList))
+            return  resList
     }
 }
 
-class audio {
-    el: any;
-    currentTime: number = 0;
-    playTime: number = 0;
-    sustainTime: number = -1;
-    loop: boolean = false;
-    volume: number = 1;
-    constructor(src: string, currentTime?: number, sustainTime?: number) {
-        this.el = new Audio();
-        this.el.src = src;
-        if (currentTime !== undefined) {
-            this.currentTime = currentTime
-        }
-        if (sustainTime !== undefined) {
-            this.sustainTime = sustainTime
-        }
-    }
-    play(): void {
-        this.el.currentTime = this.currentTime;
-        this.playTime = 0
-        if (this.loop) {
-            this.el.loop = true;
-        }
-        // this.el.fastSeek(1)
-        this.el.play()
-    }
-    pause(): void {
-        this.el.pause()
-    }
-}
-class control {
-
-}
 class collision {
     type: number;
     mode: string;

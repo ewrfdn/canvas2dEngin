@@ -15,8 +15,10 @@
     <button onclick="cl()">点击运行</button>
     <button onclick="ce()">创建元素</button>
     <button onclick="generator()">生成配置文件</button>
-
+    <button onclick="exportConfig()">导入配置文件</button>
+    <button onclick="exportImage()">导出图片</button>
     <input type="file" id=file onchange="filechange(this)" />
+    <input type="textArea" id="config"/>
     <div id="main">
 
     </div>
@@ -38,14 +40,15 @@
             var info = {
                 Vx: 0,
                 Vy: 0,
+                type:"sprite",
                 w: 850,
                 h: 480,
                 x: 100,
                 y: 100,
-                spiteInfo:fileInfo
+                spriteInfo:fileInfo
             }
 
-            var b = newBoard.createElement("spite", info)
+            var b = newBoard.createElement(info)
             newBoard.push(b)
             }
            
@@ -53,11 +56,11 @@
         var newBoard = null;
         require(["./dist/engin/engin.js"], function (canvas2d) {
             console.log(canvas2d)
-            newBoard = new canvas2d.default("main", 2300, 700)
+            newBoard = new canvas2d.default("main", 1920, 1080)
             // var newBoard={}
-            var b = newBoard.createElement("spite", info2)
-            console.log(b)
-            newBoard.push(b)
+            // var b = newBoard.createElement(info2)
+            // console.log(b)
+            // newBoard.push(b)
 
             // console.log(temp)
             // }
@@ -65,12 +68,12 @@
         })
         var img = new Image()
         var img1 = new Image()
-
+        img.setAttribute('crossOrigin', "");
+        img1.setAttribute('crossOrigin', "");
         img.src = "./src/sprite/firepsd.png"
-        img1.src = "./src/sprite/script0.png"
 
 
-        var spite = {
+        var sprite = {
             Img: img,
             sx: 200,
             sy: 500,
@@ -81,6 +84,7 @@
             Vx: 0,
             Vy: 0,
             w: 100,
+            type:"text",
             h: 200,
             text: "一二三五",
             fontSize: 20,
@@ -99,17 +103,11 @@
             y: 100,
             w: 100,
             h: 100,
-            spiteInfo: spite
-        }
-        var enemyShip0 = {
-            Img: img1,
-            sx: 400,
-            sy: 300,
-            w: 200,
-            h: 300
+            type:"sprite",
+            spriteInfo: sprite
         }
         function ce() {
-            var b = newBoard.createElement("text", info)
+            var b = newBoard.createElement( info)
             newBoard.push(b)
         }
         function generator(){
@@ -123,6 +121,22 @@
                 newBoard.gameBoard[0].focused = false
             }, 1000)
         }
+        function exportConfig(){
+           let input= document.getElementById('config')
+           let json=input.value;
+           let configList=JSON.parse(json)
+               newBoard.addElements(configList)
+        }
+      function  exportImage(){
+
+            let img=newBoard.gengratorImg(2)
+            a=document.createElement("a");
+            a.href=img.src;
+            a.crossorigin="anonymous"
+            a.download="导出图片"
+            a.click()
+        }
+        
     </script>
 </body>
 

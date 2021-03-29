@@ -19,7 +19,6 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
             this.interval = 0;
             this.gameBoard = [];
             this.background = [];
-            this.gengratorImg = {};
             this.canvas = document.createElement("canvas");
             this.canvas.id = "mainCanvas";
             this.canvas.width = width;
@@ -268,13 +267,13 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 this.gameBoard.splice(p, 1);
             }
         };
-        canvas2d.prototype.createElement = function (type, info) {
+        canvas2d.prototype.createElement = function (info) {
             var obj = {};
-            if (type === "round") {
+            if (info.type === "round") {
                 //    this.offScreen.push(new offscreenCanvas(document.createElement('canvas')))
                 //    obj=new element.roundObject(info,this.offScreen.length-1)
             }
-            else if (type === "spite") {
+            else if (info.type === "sprite") {
                 // if (info.targerFrame) {
                 //     // obj=new element.seqSpriteObject(info,sprite,this)
                 // } else {
@@ -283,23 +282,29 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 obj = new bacicElementDefine_1.default.spriteObject(info, offScreenCanavs, this);
                 // }
             }
-            else if (type === "rect") {
+            else if (info.type === "rect") {
                 // obj=new element.rectangleObject(info,this)
             }
             // else if(type==="triangel"){
             //     obj=new element.rectangleObject(info)
             // }
-            else if (type === "text") {
+            else if (info.type === "text") {
                 var offscreenCache = new offscreenCanvas();
                 this.offScreen.push(offscreenCache);
                 obj = new bacicElementDefine_1.default.textObject(info, offscreenCache, this);
             }
-            else if (type === "barcode") {
+            else if (info.type === "barcode") {
                 var offscreenCache = new offscreenCanvas();
                 this.offScreen.push(offscreenCache);
                 obj = new advanceElementDefine_1.default.barcodeObject(info, offscreenCache, this);
             }
             return obj;
+        };
+        canvas2d.prototype.addElements = function (elementList) {
+            var _this = this;
+            elementList.forEach(function (e) {
+                _this.push(_this.createElement(e));
+            });
         };
         canvas2d.prototype.loop = function () {
             var _this = this;
@@ -326,6 +331,32 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 _this.loop();
             });
         };
+        canvas2d.prototype.gengratorImg = function (scale) {
+            if (scale == undefined || scale < 0) {
+                scale = 1;
+            }
+            this.stopLoop();
+            this.canvas.width = this.width * scale;
+            this.canvas.height = this.height * scale;
+            if (scale != 1) {
+                this.gameBoard.forEach(function (item) {
+                    item.x = item.x * scale;
+                    item.y = item.y * scale;
+                    item.width = item.width * scale;
+                    item.height = item.height * scale;
+                    if (item instanceof bacicElementDefine_1.default.textObject) {
+                        item.fontSize = item.fontSize * scale;
+                        item.borderWidth = item.borderWidth;
+                    }
+                });
+            }
+            this.gameBoard.forEach(function (element) {
+                element.draw();
+            });
+            var image = new Image();
+            image.src = this.canvas.toDataURL("image/png");
+            return image;
+        };
         canvas2d.prototype.getElementToJson = function () {
             var resList = [];
             this.gameBoard.forEach(function (e) {
@@ -335,60 +366,32 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 res.x = e.x;
                 res.y = e.y;
                 res.z = e.z;
+                console.log(e.background);
                 if (e instanceof bacicElementDefine_1.default.spriteObject) {
                     res.type = "sprite";
-                    res.spiteInfo = res.spiteInfo;
+                    res.spriteInfo = res.sprite;
                 }
                 else if (e instanceof bacicElementDefine_1.default.textObject) {
                     res.type = "text";
                     res.bordered = e.bordered;
-                    res.borderWidth = e.borderWidth;
+                    res.text = e.text;
                     res.textAligne = e.textAlign;
                     res.color = e.color;
-                    res.background = e.borderWidth;
+                    res.borderColor = e.borderColor;
+                    res.borderWidth = e.borderWidth;
+                    res.fontFamily = e.fontFamily;
+                    res.fontWidth = e.fontWidth;
+                    res.fontSize = e.fontSize;
+                    res.background = e.background;
                 }
                 resList.push(res);
             });
-            console.log(resList);
+            console.log(JSON.stringify(resList));
+            return resList;
         };
         return canvas2d;
     }());
     exports.default = canvas2d;
-    var audio = /** @class */ (function () {
-        function audio(src, currentTime, sustainTime) {
-            this.currentTime = 0;
-            this.playTime = 0;
-            this.sustainTime = -1;
-            this.loop = false;
-            this.volume = 1;
-            this.el = new Audio();
-            this.el.src = src;
-            if (currentTime !== undefined) {
-                this.currentTime = currentTime;
-            }
-            if (sustainTime !== undefined) {
-                this.sustainTime = sustainTime;
-            }
-        }
-        audio.prototype.play = function () {
-            this.el.currentTime = this.currentTime;
-            this.playTime = 0;
-            if (this.loop) {
-                this.el.loop = true;
-            }
-            // this.el.fastSeek(1)
-            this.el.play();
-        };
-        audio.prototype.pause = function () {
-            this.el.pause();
-        };
-        return audio;
-    }());
-    var control = /** @class */ (function () {
-        function control() {
-        }
-        return control;
-    }());
     var collision = /** @class */ (function () {
         function collision(type, mode) {
             this.Collision = [];
