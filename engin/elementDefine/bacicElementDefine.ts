@@ -1,5 +1,5 @@
-import{ basicElementInterface}  from "../elementDefineInterface/basicElementDefineInterface"
-abstract class elementObject {
+import { basicElementInterface, GroupElementInterface } from "../elementDefineInterface/basicElementDefineInterface"
+abstract class ElementObject {
     private _width: number;
     private _height: number;
     public get width() {
@@ -24,13 +24,16 @@ abstract class elementObject {
     Vy: number;
     offscreenCache: any;
     canvas: any
+    buildCache() {
+        this.offscreenCache.canvas.width = this.width;
+        this.offscreenCache.canvas.height = this.height;
+        let ctx = this.offscreenCache.canvas.getContext('2d')
+        this.onDraw(ctx)
+        this.offscreenCache.isBuild = true;
+    }
     draw() {
         if (!this.offscreenCache.isBuild) {
-            this.offscreenCache.canvas.width = this.width;
-            this.offscreenCache.canvas.height = this.height;
-            let ctx = this.offscreenCache.canvas.getContext('2d')
-            this.onDraw(ctx)
-            this.offscreenCache.isBuild = true;
+            this.buildCache()
         }
         if (this.focused) {
             this.canvas.ctx.strokeStyle = "#F00";
@@ -61,17 +64,17 @@ abstract class elementObject {
         this.created();
         this.focused = false
     }
-    destoryed(elementObj: elementObject,) {
+    destoryed(elementObj: ElementObject,) {
         this.beforeDestoryed(elementObj)
         this.canvas.remove(elementObj)
     }
     abstract created(): void
     abstract onStep(dt: number): void
     abstract onDraw(ctx: any): void
-    abstract beforeDestoryed(elementObj: elementObject): void
-    abstract afterDestoryed(elementObj: elementObject): void
+    abstract beforeDestoryed(elementObj: ElementObject): void
+    abstract afterDestoryed(elementObj: ElementObject): void
 }
-class rectangleObject extends elementObject {
+class RectangleObject extends ElementObject {
     color: string;
     TargetLifeCycle: number = Infinity;
     lifeCycle: number = 0;
@@ -92,8 +95,57 @@ class rectangleObject extends elementObject {
         this.color = info.color || "rgb(245, 240, 240)"
     }
 }
+class GroupElement extends ElementObject {
+    children: Array<ElementObject>
+    constructor(groupInfo: GroupElementInterface, canvas: any, offscreenCache: any) {
+        let xMax = 0, yMax = 0, xMin = Infinity, yMin = Infinity;
+        groupInfo.children.forEach(e => {
+            if (e.x > xMax) {
+                xMax = e.x
+            }
+            if (e.y < yMin) {
+                xMin = e.x
+            }
+            if (e.x > xMax) {
+                yMax = e.y
+            }
+            if (e.y < yMin) {
+                yMin = e.y
+            }
+        })
+        let info: basicElementInterface = {
+            x: xMin,
+            y: yMin,
+            z: 0,
+            w: xMax - xMin,
+            h: yMax - yMin,
+            type: "group",
+            Vy: 0,
+            Vx: 0,
+        }
+        super(info, canvas, offscreenCache)
+        this.children = []
+    }
+    beforeDestoryed() {
 
-class spriteObject extends elementObject {
+    }
+    afterDestoryed() {
+    }
+    created() {
+    }
+    step(dt: number) {
+        this.move(dt)
+        this.onStep(dt)
+    }
+    onStep(dt: number) {
+    }
+    onDraw(ctx: any) {
+        this.children.forEach(e => {
+            ctx.drawImage(e.offscreenCache.canvas, e.x - this.x, e.y - this.y)
+        })
+    }
+}
+class SpriteObject extends ElementObject {
     sprite: any;
     onDraw(ctx: any) {
         ctx.drawImage(this.sprite.Img, this.sprite.sx, this.sprite.sy,
@@ -117,7 +169,7 @@ class spriteObject extends elementObject {
         this.sprite = info.spriteInfo;
     }
 }
-class textObject extends elementObject {
+class TextObject extends ElementObject {
     private _color: string;
     public get color() {
         return this._color
@@ -207,10 +259,10 @@ class textObject extends elementObject {
         this.offscreenCache.isBuild = false;
     }
     onDraw(ctx: any): void {
-      
+
         if (this._background) {
             ctx.fillStyle = this._background;
-            ctx.fillRect(0, 0, this.width , this.height)
+            ctx.fillRect(0, 0, this.width, this.height)
         }
         if (this._bordered) {
             ctx.strokeStyle = this._borderColor;
@@ -229,37 +281,37 @@ class textObject extends elementObject {
                     ctx.fillText(element, this.width / 2, (this.height / 2 - (this.fontSize * arr.length - 1) / 2 + this.fontSize * (index + 1)))
                     if (this.fontWidth > 100) {
                         let count = ~~(this.fontWidth / 100)
-                        for (let i = 0; i < count; i+=3) {
+                        for (let i = 0; i < count; i += 3) {
                             let offset: number = i * 0.1
-                            let opacity=(count-i)/count
-                            this.canvas.opacity=opacity;
-                            ctx.fillText(element, this.width / 2 , (this.height / 2 - (this.fontSize * arr.length - 1) / 2 + offset + this.fontSize * (index + 1)))
+                            let opacity = (count - i) / count
+                            this.canvas.opacity = opacity;
+                            ctx.fillText(element, this.width / 2, (this.height / 2 - (this.fontSize * arr.length - 1) / 2 + offset + this.fontSize * (index + 1)))
                         }
-                        this.canvas.opacity=1;
+                        this.canvas.opacity = 1;
                     }
                 } else if (this.textAlign === "left") {
-                    ctx.fillText(element, this.borderWidth/2, (this.height / 2 - (this.fontSize * arr.length - 1) / 2  + this.fontSize * (index + 1)))
+                    ctx.fillText(element, this.borderWidth / 2, (this.height / 2 - (this.fontSize * arr.length - 1) / 2 + this.fontSize * (index + 1)))
                     if (this.fontWidth > 100) {
                         let count = ~~(this.fontWidth / 100)
-                        for (let i = 0; i < count; i+=3) {
+                        for (let i = 0; i < count; i += 3) {
                             let offset: number = i * 0.1
-                            let opacity=(count-i)/count
-                            this.canvas.opacity=opacity;
-                            ctx.fillText(element, this.borderWidth/2, (this.height / 2 - (this.fontSize * arr.length - 1) / 2 + offset + this.fontSize * (index + 1)))
+                            let opacity = (count - i) / count
+                            this.canvas.opacity = opacity;
+                            ctx.fillText(element, this.borderWidth / 2, (this.height / 2 - (this.fontSize * arr.length - 1) / 2 + offset + this.fontSize * (index + 1)))
                         }
-                        this.canvas.opacity=1;
+                        this.canvas.opacity = 1;
                     }
                 } else if (this.textAlign = "right") {
                     ctx.fillText(element, this.width, (this.height / 2 + 2 * this.fontSize * index) / 2);
                     if (this.fontWidth > 100) {
                         let count = ~~(this.fontWidth / 100)
-                        for (let i = 0; i < count; i+=3) {
+                        for (let i = 0; i < count; i += 3) {
                             let offset: number = i * 0.1
-                            let opacity=(count-i)/count
-                            this.canvas.opacity=opacity;
-                            ctx.fillText(element, this.width, (this.height / 2 + 2 * this.fontSize * index) / 2+offset);
+                            let opacity = (count - i) / count
+                            this.canvas.opacity = opacity;
+                            ctx.fillText(element, this.width, (this.height / 2 + 2 * this.fontSize * index) / 2 + offset);
                         }
-                        this.canvas.opacity=1;
+                        this.canvas.opacity = 1;
                     }
                 }
             })
@@ -325,10 +377,11 @@ class textObject extends elementObject {
     }
 }
 export default {
-    textObject,
-    elementObject,
+    TextObject,
+    ElementObject,
+    GroupElement,
     // seqSpriteObject,
     // roundObject,
     // triangleObject,
-    spriteObject
+    SpriteObject
 }

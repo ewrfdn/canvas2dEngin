@@ -17,6 +17,9 @@ export interface spriteElementInterface extends basicElementInterface{
         h: number,
     }
 }
+export interface GroupElementInterface extends basicElementInterface{
+    children:Array<basicElementInterface>
+}
  export interface textElementInterface extends basicElementInterface{
     text:string,
     fontSize:string,

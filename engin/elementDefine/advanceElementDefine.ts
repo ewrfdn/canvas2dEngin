@@ -1,6 +1,6 @@
 // import JsBarcode from "jsbarcode"
 import element from "./bacicElementDefine"
-class barcodeObject extends element.elementObject {
+class barcodeObject extends element.ElementObject {
     private _barcodeText:string
     public get barcodeText(){
         return this._barcodeText

@@ -68,8 +68,8 @@
         })
         var img = new Image()
         var img1 = new Image()
-        img.setAttribute('crossOrigin', "");
-        img1.setAttribute('crossOrigin', "");
+        // img.setAttribute('crossOrigin', "");
+        // img1.setAttribute('crossOrigin', "");
         img.src = "./src/sprite/firepsd.png"
 
 
@@ -83,19 +83,18 @@
         var info = {
             Vx: 0,
             Vy: 0,
-            w: 100,
+            w: 50,
             type:"text",
-            h: 200,
+            h: 50,
             text: "一二三五",
             fontSize: 20,
             fontFamily:"楷体",
-            fontWidth:1000,
-            borderWidth:10,
-            borderColor:"#0f0",
+            fontWidth:100,
+            borderWidth:1,
+            borderColor:"#000",
             bordered: true,
             color:"#e00",
             textAlign:"left",
-            background:"#0ee",
             autoFeed: true
         }
         var info2 = {
@@ -107,7 +106,9 @@
             spriteInfo: sprite
         }
         function ce() {
-            var b = newBoard.createElement( info)
+            info.x=Math.random()*1920
+            info.y=Math.random()*1080
+            var b = newBoard.createElement(info)
             newBoard.push(b)
         }
         function generator(){
@@ -117,9 +118,9 @@
             newBoard.loop()
             newBoard.enableClickEventLisener()
             newBoard.enableKeyupEventLisener()
-            window.setTimeout(() => {
-                newBoard.gameBoard[0].focused = false
-            }, 1000)
+            // for(let i=0;i<1000;i++){
+            //     ce()
+            // }
         }
         function exportConfig(){
            let input= document.getElementById('config')
