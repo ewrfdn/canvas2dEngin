@@ -1,0 +1,144 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* #main {
+            background: #ccc;
+        } */
+    </style>
+</head>
+
+<body>
+    <button onclick="cl()">点击运行</button>
+    <button onclick="ce()">创建元素</button>
+    <button onclick="generator()">生成配置文件</button>
+    <button onclick="exportConfig()">导入配置文件</button>
+    <button onclick="exportImage()">导出图片</button>
+    <input type="file" id=file onchange="filechange(this)" />
+    <input type="textArea" id="config"/>
+    <div id="main">
+
+    </div>
+    <script src="https://unpkg.com/requirejs@2.3.6/require.js"></script>
+    <script>
+        function filechange(e) {
+            console.log(e.files[0])
+            let url = URL.createObjectURL(e.files[0])
+            let img = new Image()
+            img.src = url
+            img.onload=()=>{
+                fileInfo = {
+                Img: img,
+                sx: 0,
+                sy: 0,
+                w: img.width,
+                h: img.height
+            }
+            var info = {
+                Vx: 0,
+                Vy: 0,
+                type:"sprite",
+                w: 850,
+                h: 480,
+                x: 100,
+                y: 100,
+                spriteInfo:fileInfo
+            }
+
+            var b = newBoard.createElement(info)
+            newBoard.push(b)
+            }
+           
+        }
+        var newBoard = null;
+        require(["./dist/engin/engin.js"], function (canvas2d) {
+            console.log(canvas2d)
+            newBoard = new canvas2d.default("main", 1920, 1080)
+            // var newBoard={}
+            // var b = newBoard.createElement(info2)
+            // console.log(b)
+            // newBoard.push(b)
+
+            // console.log(temp)
+            // }
+            console.log(newBoard)
+        })
+        var img = new Image()
+        var img1 = new Image()
+        // img.setAttribute('crossOrigin', "");
+        // img1.setAttribute('crossOrigin', "");
+        img.src = "./src/sprite/firepsd.png"
+
+
+        var sprite = {
+            Img: img,
+            sx: 200,
+            sy: 500,
+            w: 100,
+            h: 100,
+        }
+        var info = {
+            Vx: 0,
+            Vy: 0,
+            w: 50,
+            type:"text",
+            h: 50,
+            text: "一二三五",
+            fontSize: 20,
+            fontFamily:"楷体",
+            fontWidth:100,
+            borderWidth:1,
+            borderColor:"#000",
+            bordered: true,
+            color:"#e00",
+            textAlign:"left",
+            autoFeed: true
+        }
+        var info2 = {
+            x: 100,
+            y: 100,
+            w: 100,
+            h: 100,
+            type:"sprite",
+            spriteInfo: sprite
+        }
+        function ce() {
+            info.x=Math.random()*1920
+            info.y=Math.random()*1080
+            var b = newBoard.createElement(info)
+            newBoard.push(b)
+        }
+        function generator(){
+            newBoard.getElementToJson()
+        }
+        var cl = function () {
+            newBoard.loop()
+            newBoard.enableClickEventLisener()
+            newBoard.enableKeyupEventLisener()
+            // for(let i=0;i<1000;i++){
+            //     ce()
+            // }
+        }
+        function exportConfig(){
+           let input= document.getElementById('config')
+           let json=input.value;
+           let configList=JSON.parse(json)
+               newBoard.addElements(configList)
+        }
+      function  exportImage(){
+
+            let img=newBoard.gengratorImg(2)
+            a=document.createElement("a");
+            a.href=img.src;
+            a.crossorigin="anonymous"
+            a.download="导出图片"
+            a.click()
+        }
+        
+    </script>
+</body>
+
+</html>
