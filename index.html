@@ -17,6 +17,9 @@
     <button onclick="generator()">生成配置文件</button>
     <button onclick="exportConfig()">导入配置文件</button>
     <button onclick="exportImage()">导出图片</button>
+    <button onclick="group()">组合</button>
+    <button onclick="newBoard.disGroup()">解组</button>
+
     <input type="file" id=file onchange="filechange(this)" />
     <input type="textArea" id="config"/>
     <div id="main">
@@ -71,8 +74,6 @@
         // img.setAttribute('crossOrigin', "");
         // img1.setAttribute('crossOrigin', "");
         img.src = "./src/sprite/firepsd.png"
-
-
         var sprite = {
             Img: img,
             sx: 200,
@@ -83,18 +84,18 @@
         var info = {
             Vx: 0,
             Vy: 0,
-            w: 50,
+            w: 250,
             type:"text",
-            h: 50,
+            h: 150,
             text: "一二三五",
-            fontSize: 20,
+            fontSize: 50,
             fontFamily:"楷体",
             fontWidth:100,
-            borderWidth:1,
+            borderWidth:0,
             borderColor:"#000",
-            bordered: true,
+            bordered: false,
             color:"#e00",
-            textAlign:"left",
+            textAlign:"center",
             autoFeed: true
         }
         var info2 = {
@@ -106,10 +107,13 @@
             spriteInfo: sprite
         }
         function ce() {
-            info.x=Math.random()*1920
-            info.y=Math.random()*1080
+            for(let i=0;i<10000;i++){
+                info.x=Math.random()*1500
+            info.y=Math.random()*800
             var b = newBoard.createElement(info)
             newBoard.push(b)
+            }
+         
         }
         function generator(){
             newBoard.getElementToJson()
@@ -118,9 +122,6 @@
             newBoard.loop()
             newBoard.enableClickEventLisener()
             newBoard.enableKeyupEventLisener()
-            // for(let i=0;i<1000;i++){
-            //     ce()
-            // }
         }
         function exportConfig(){
            let input= document.getElementById('config')
@@ -129,13 +130,15 @@
                newBoard.addElements(configList)
         }
       function  exportImage(){
-
-            let img=newBoard.gengratorImg(2)
+            let img=newBoard.gengratorImg(1)
             a=document.createElement("a");
             a.href=img.src;
             a.crossorigin="anonymous"
             a.download="导出图片"
             a.click()
+        }
+        function group(){
+         newBoard.group()
         }
         
     </script>

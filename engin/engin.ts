@@ -1,6 +1,6 @@
 import element from "./elementDefine/bacicElementDefine"
 import advanceElement from "./elementDefine/advanceElementDefine"
-import { basicElementInterface, spriteElementInterface, textElementInterface } from "./elementDefineInterface/basicElementDefineInterface"
+import { basicElementInterface, GroupElementInterface, spriteElementInterface, textElementInterface } from "./elementDefineInterface/basicElementDefineInterface"
 export default class canvas2d {
     x: number = 0;
     y: number = 0;
@@ -264,7 +264,7 @@ export default class canvas2d {
             this.gameBoard.splice(p, 1);
         }
     }
-    createElement(info: basicElementInterface): object {
+    createElement(info: any): object {
         var obj: object = {}
         let offscreenCache = new offscreenCanvas()
 
@@ -272,7 +272,7 @@ export default class canvas2d {
             //    this.offScreen.push(new offscreenCanvas(document.createElement('canvas')))
             //    obj=new element.roundObject(info,this.offScreen.length-1)
         } else if (info.type === "sprite") {
-            this.offScreen.push(offscreenCache)
+            // this.offScreen.push(offscreenCache)
             obj = new element.SpriteObject(info, offscreenCache, this)
             this.offScreen.push(offscreenCache)
             // }
@@ -281,7 +281,7 @@ export default class canvas2d {
         }
         // else if(type==="triangel"){
         //     obj=new element.rectangleObject(info)
-        // }
+        // } 
         else if (info.type === "text") {
             obj = new element.TextObject(info, offscreenCache, this)
         }
@@ -289,7 +289,7 @@ export default class canvas2d {
             obj = new advanceElement.barcodeObject(info, offscreenCache, this)
         }
         else if (info.type === "group") {
-
+            obj = new element.GroupElement(info, offscreenCache, this)
         }
 
         return obj
@@ -355,6 +355,7 @@ export default class canvas2d {
             })
         }
         this.gameBoard.forEach(element => {
+            element.focused=false;
             element.draw()
         })
         let image = new Image();
@@ -362,8 +363,12 @@ export default class canvas2d {
         return image;
     }
     public getElementToJson(): Array<basicElementInterface> {
+        return this.elementToJson(this.gameBoard)
+    }
+    public elementToJson(list:Array<any>):Array<basicElementInterface>{
         let resList: Array<basicElementInterface> = []
-        this.gameBoard.forEach(e => {
+        list.forEach(e => {
+            console.log(e)
             let res: any = {}
             res.w = e.width;
             res.h = e.height;
@@ -373,23 +378,27 @@ export default class canvas2d {
             console.log(e.background)
             if (e instanceof element.SpriteObject) {
                 res.type = "sprite";
-                res.spriteInfo = res.sprite;
+                res.spriteInfo = e.sprite;
             } else if (e instanceof element.TextObject) {
                 res.type = "text"
-                res.bordered = e.bordered;
+                res.bordered = e.bordered||false;
                 res.text = e.text;
                 res.textAligne = e.textAlign;
                 res.color = e.color;
                 res.borderColor = e.borderColor;
-                res.borderWidth = e.borderWidth;
+                res.borderWidth = e.borderWidth||0;
                 res.fontFamily = e.fontFamily;
                 res.fontWidth = e.fontWidth;
                 res.fontSize = e.fontSize;
                 res.background = e.background;
             }
+            else if(e instanceof element.GroupElement){
+                res.type="group";
+                res.childern=this.elementToJson(e.children);
+            }
             resList.push(res)
         })
-        console.log(JSON.stringify(resList))
+        console.log(resList)
         return resList
     }
     public groupElement(){
@@ -403,42 +412,93 @@ export default class canvas2d {
         })
 
     }
-}
-
-class collision {
-    type: number;
-    mode: string;
-    Collision: any[] = [];
-    isCollision: boolean;
-    overlape(obj1: any, obj2: any): boolean {
-        return !((obj1.x + obj1.width) < obj2.x || (obj1.y + obj1.height) < obj2.y ||
-            (obj2.x + obj2.width) < obj1.x || (obj2.y + obj2.height) < obj1.y)
-    }
-    checkCollision(obj1: any, that: any): void {
-        for (let i = 0; i < that.gameBoard.length; i++) {
-            if (that.gameBoard[i].col && obj1.col.type === that.gameBoard[i].col.type && obj1 !== that.gameBoard[i]) {
-                if (this.overlape(obj1, that.gameBoard[i])) {
-                    obj1.col.isCollision = true
-                    that.gameBoard[i].col.isCollision = true;
-                    // this.Collision.push(that.gameBoard[i])
-                    if (this.mode === "single") {
-                        break;
-                    }
-                }
-                else {
-                    obj1.col.isCollision = false
-
-                }
+    public group(){
+        let groupList:Array<any>=[]
+        this.gameBoard=this.gameBoard.filter(e=>{
+            if(e.focused){
+                groupList.push(e)
             }
-
+            return !e.focused
+        })
+        if(groupList.length==0){
+            return
         }
+        let xMax=groupList[0].x,xMin=groupList[0].x,yMax=groupList[0].y,yMin=groupList[0].y,maxWidth=groupList[0].width,maxHeight=groupList[0].height
+        for(let i=1;i<groupList.length;i++){
+            if(groupList[i].x>xMax){
+                xMax=groupList[i].x;
+                maxWidth=groupList[i].width
+            }
+            if(groupList[i].y>yMax){
+                yMax=groupList[i].y
+                maxHeight=groupList[i].height
+            }
+            if(groupList[i].x<xMin){
+                xMin=groupList[i].x;
+            }
+            if(groupList[i].y<yMin){
+                yMin=groupList[i].y
+            }
+        }
+        let groupInfo:GroupElementInterface={
+            x:xMin,
+            y:yMin,
+            type:"group",
+            w:xMax-xMin+maxWidth,
+            h:yMax-yMin+maxHeight,
+            Vx:0,
+            z:0,
+            Vy:0,
+            children:this.elementToJson(groupList)
+        }
+        groupInfo.children.forEach(e=>{
+            e.x=e.x-xMin;
+            e.y=e.y-yMin;
+        })
+        this.push(this.createElement(groupInfo))
     }
-    constructor(type: number, mode?: string) {
-        this.type = type;
-        this.mode = mode || "single";
-        this.isCollision = false;
+    public disGroup(){
+        this.gameBoard.forEach(e=>{
+            if(e.focused&&e instanceof element.GroupElement){
+                e.disGroup()
+            }
+        })
     }
 }
+// class collision {
+//     type: number;
+//     mode: string;
+//     Collision: any[] = [];
+//     isCollision: boolean;
+//     overlape(obj1: any, obj2: any): boolean {
+//         return !((obj1.x + obj1.width) < obj2.x || (obj1.y + obj1.height) < obj2.y ||
+//             (obj2.x + obj2.width) < obj1.x || (obj2.y + obj2.height) < obj1.y)
+//     }
+//     checkCollision(obj1: any, that: any): void {
+//         for (let i = 0; i < that.gameBoard.length; i++) {
+//             if (that.gameBoard[i].col && obj1.col.type === that.gameBoard[i].col.type && obj1 !== that.gameBoard[i]) {
+//                 if (this.overlape(obj1, that.gameBoard[i])) {
+//                     obj1.col.isCollision = true
+//                     that.gameBoard[i].col.isCollision = true;
+//                     // this.Collision.push(that.gameBoard[i])
+//                     if (this.mode === "single") {
+//                         break;
+//                     }
+//                 }
+//                 else {
+//                     obj1.col.isCollision = false
+
+//                 }
+//             }
+
+//         }
+//     }
+//     constructor(type: number, mode?: string) {
+//         this.type = type;
+//         this.mode = mode || "single";
+//         this.isCollision = false;
+//     }
+// }
 class offscreenCanvas {
     canvas: any;
     isBuild: boolean = false

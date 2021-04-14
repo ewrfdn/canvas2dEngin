@@ -1,5 +1,8 @@
 import { basicElementInterface, GroupElementInterface } from "../elementDefineInterface/basicElementDefineInterface"
 abstract class ElementObject {
+    public  id:string;
+    private lock=false;
+    private updateTimer:any=null;
     private _width: number;
     private _height: number;
     public get width() {
@@ -7,10 +10,10 @@ abstract class ElementObject {
     }
     public set width(width: number) {
         this._width = width;
-        this.offscreenCache.isBuild = false
+        this.buildCache()
     }
     public set height(height: number) {
-        this.offscreenCache.isBuild = false
+        this.buildCache()
         this._height = height;
     }
     public get height() {
@@ -25,16 +28,26 @@ abstract class ElementObject {
     offscreenCache: any;
     canvas: any
     buildCache() {
-        this.offscreenCache.canvas.width = this.width;
-        this.offscreenCache.canvas.height = this.height;
-        let ctx = this.offscreenCache.canvas.getContext('2d')
-        this.onDraw(ctx)
-        this.offscreenCache.isBuild = true;
+        console.log(1)
+        if(this.lock){
+            return
+        }
+        clearTimeout(this.updateTimer)
+        this.updateTimer=setTimeout(()=>{
+            this.lock=true
+            this.offscreenCache.canvas.width = this.width;
+            this.offscreenCache.canvas.height = this.height;
+            let ctx = this.offscreenCache.canvas.getContext('2d')
+            this.onDraw(ctx)
+            this.offscreenCache.isBuild = true;
+            this.lock=false
+        },33)
+       
     }
     draw() {
-        if (!this.offscreenCache.isBuild) {
-            this.buildCache()
-        }
+        // if (!this.offscreenCache.isBuild) {
+        //     this.buildCache()
+        // }
         if (this.focused) {
             this.canvas.ctx.strokeStyle = "#F00";
             this.canvas.ctx.lineWidth = "2";
@@ -51,7 +64,8 @@ abstract class ElementObject {
         this.move(dt);
         this.onStep(dt);
     }
-    constructor(info: basicElementInterface, canvas: any, offscreenCache: any) {
+    constructor(info: basicElementInterface, offscreenCache: any,canvas: any,) {
+        this.id=new Date().getTime+canvas.gameBoard.length+~~(Math.random()*1000000)
         this._width = info.w || 100;
         this._height = info.h || 100;
         this.Vx = info.Vx || 0;
@@ -63,10 +77,11 @@ abstract class ElementObject {
         this.offscreenCache = offscreenCache;
         this.created();
         this.focused = false
+        this.buildCache()
     }
-    destoryed(elementObj: ElementObject,) {
-        this.beforeDestoryed(elementObj)
-        this.canvas.remove(elementObj)
+    destoryed() {
+        this.beforeDestoryed(this)
+        this.canvas.remove(this)
     }
     abstract created(): void
     abstract onStep(dt: number): void
@@ -97,51 +112,37 @@ class RectangleObject extends ElementObject {
 }
 class GroupElement extends ElementObject {
     children: Array<ElementObject>
-    constructor(groupInfo: GroupElementInterface, canvas: any, offscreenCache: any) {
-        let xMax = 0, yMax = 0, xMin = Infinity, yMin = Infinity;
-        groupInfo.children.forEach(e => {
-            if (e.x > xMax) {
-                xMax = e.x
-            }
-            if (e.y < yMin) {
-                xMin = e.x
-            }
-            if (e.x > xMax) {
-                yMax = e.y
-            }
-            if (e.y < yMin) {
-                yMin = e.y
-            }
-        })
-        let info: basicElementInterface = {
-            x: xMin,
-            y: yMin,
-            z: 0,
-            w: xMax - xMin,
-            h: yMax - yMin,
-            type: "group",
-            Vy: 0,
-            Vx: 0,
-        }
-        super(info, canvas, offscreenCache)
+    constructor(groupInfo: GroupElementInterface, offscreenCache: any, canvas: any) {
+        super(groupInfo, offscreenCache,canvas)
         this.children = []
+        console.log(groupInfo)
+        groupInfo.children.forEach(e=>{
+            let temp=canvas.createElement(e);
+            console.log(temp)
+            this.children.push(temp)
+        })
+        this.buildCache()
     }
     beforeDestoryed() {
 
+    }
+    disGroup(){
+        this.children.forEach(e=>{
+            e.x+=this.x;
+            e.y+=this.y;
+            this.canvas.gameBoard.push(e)
+        })
+        this.destoryed()
     }
     afterDestoryed() {
     }
     created() {
     }
-    step(dt: number) {
-        this.move(dt)
-        this.onStep(dt)
-    }
     onStep(dt: number) {
     }
     onDraw(ctx: any) {
         this.children.forEach(e => {
-            ctx.drawImage(e.offscreenCache.canvas, e.x - this.x, e.y - this.y)
+            ctx.drawImage(e.offscreenCache.canvas, e.x , e.y)
         })
     }
 }
@@ -165,7 +166,7 @@ class SpriteObject extends ElementObject {
     onStep(dt: number) {
     }
     constructor(info: any, offscreenCanvas: any, canvas: any) {
-        super(info, canvas, offscreenCanvas);
+        super(info, offscreenCanvas,canvas,);
         this.sprite = info.spriteInfo;
     }
 }
@@ -176,7 +177,7 @@ class TextObject extends ElementObject {
     }
     public set color(color: string) {
         this._color = color;
-        this.offscreenCache.isBuild = false
+        this.buildCache()
     }
     private _fontSize: number;
     public get fontSize() {
@@ -184,7 +185,7 @@ class TextObject extends ElementObject {
     }
     public set fontSize(fontSize: number) {
         this._fontSize = fontSize;
-        this.offscreenCache.isBuild = false
+        this.buildCache()
     }
     private _fontFamily: string
     public get fontFamily() {
@@ -192,7 +193,7 @@ class TextObject extends ElementObject {
     }
     public set fontFamily(fontFamily: string) {
         this._fontFamily = fontFamily;
-        this.offscreenCache.isBuild = false;
+        this.buildCache();
     }
     private _borderColor: string;
     public get borderColor() {
@@ -200,7 +201,7 @@ class TextObject extends ElementObject {
     }
     public set borderColor(_borderColor: string) {
         this._borderColor = _borderColor;
-        this.offscreenCache.isBuild = false;
+        this.buildCache();
     }
     private _text: string;
     public get text() {
@@ -208,7 +209,7 @@ class TextObject extends ElementObject {
     }
     public set text(text: string) {
         this._text = text;
-        this.offscreenCache.isBuild = false;
+        this.buildCache();
     }
     private _bordered: boolean;
     public get bordered() {
@@ -216,15 +217,15 @@ class TextObject extends ElementObject {
     }
     public set bordered(_bordered: boolean) {
         this._bordered = _bordered;
-        this.offscreenCache.isBuild = false;
+        this.buildCache();
     }
     private _borderWidth: number;
     public get borderWidth() {
-        return this._fontSize
+        return this._borderWidth
     }
     public set borderWidth(borderWidth: number) {
         this._borderWidth = borderWidth;
-        this.offscreenCache.isBuild = false
+        this.buildCache()
     }
     private _fontWidth: number;
     public get fontWidth() {
@@ -232,7 +233,7 @@ class TextObject extends ElementObject {
     }
     public set fontWidth(fontWidth: number) {
         this._fontWidth = fontWidth;
-        this.offscreenCache.isBuild = false
+        this.buildCache()
     }
     private _autoFeed: boolean;
     public get autoFeed() {
@@ -240,7 +241,7 @@ class TextObject extends ElementObject {
     }
     public set autoFeed(_autoFeed: boolean) {
         this._bordered = _autoFeed;
-        this.offscreenCache.isBuild = false
+        this.buildCache()
     }
     private _background: string;
     public get background() {
@@ -248,7 +249,7 @@ class TextObject extends ElementObject {
     }
     public set background(background: string) {
         this._background = background;
-        this.offscreenCache.isBuild = false;
+        this.buildCache();
     }
     private _textAlign: string;
     public get textAlign() {
@@ -256,10 +257,10 @@ class TextObject extends ElementObject {
     }
     public set textAlign(textAlign: string) {
         this._textAlign = textAlign;
-        this.offscreenCache.isBuild = false;
+        this.buildCache();
     }
     onDraw(ctx: any): void {
-
+        console.log(233)
         if (this._background) {
             ctx.fillStyle = this._background;
             ctx.fillRect(0, 0, this.width, this.height)
@@ -302,14 +303,14 @@ class TextObject extends ElementObject {
                         this.canvas.opacity = 1;
                     }
                 } else if (this.textAlign = "right") {
-                    ctx.fillText(element, this.width, (this.height / 2 + 2 * this.fontSize * index) / 2);
+                    ctx.fillText(element, this.width, (this.height / 2 - (this.fontSize * arr.length - 1) / 2 + this.fontSize * (index + 1)));
                     if (this.fontWidth > 100) {
                         let count = ~~(this.fontWidth / 100)
                         for (let i = 0; i < count; i += 3) {
                             let offset: number = i * 0.1
                             let opacity = (count - i) / count
                             this.canvas.opacity = opacity;
-                            ctx.fillText(element, this.width, (this.height / 2 + 2 * this.fontSize * index) / 2 + offset);
+                            ctx.fillText(element, this.width,(this.height / 2 - (this.fontSize * arr.length - 1) / 2 + this.fontSize * (index + 1)) + offset);
                         }
                         this.canvas.opacity = 1;
                     }
@@ -361,7 +362,7 @@ class TextObject extends ElementObject {
     onStep(dt: number) {
     }
     constructor(info: any, offScreen: any, canvas: any) {
-        super(info, canvas, offScreen)
+        super(info, offScreen, canvas)
         this._color = info.color || "#000";
         this._fontFamily = info.fontFamily || "微软雅黑";
         this._textAlign = info.textAlign || "center"

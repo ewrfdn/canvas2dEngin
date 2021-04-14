@@ -287,7 +287,7 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 //    obj=new element.roundObject(info,this.offScreen.length-1)
             }
             else if (info.type === "sprite") {
-                this.offScreen.push(offscreenCache);
+                // this.offScreen.push(offscreenCache)
                 obj = new bacicElementDefine_1.default.SpriteObject(info, offscreenCache, this);
                 this.offScreen.push(offscreenCache);
                 // }
@@ -297,7 +297,7 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
             }
             // else if(type==="triangel"){
             //     obj=new element.rectangleObject(info)
-            // }
+            // } 
             else if (info.type === "text") {
                 obj = new bacicElementDefine_1.default.TextObject(info, offscreenCache, this);
             }
@@ -305,6 +305,7 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 obj = new advanceElementDefine_1.default.barcodeObject(info, offscreenCache, this);
             }
             else if (info.type === "group") {
+                obj = new bacicElementDefine_1.default.GroupElement(info, offscreenCache, this);
             }
             return obj;
         };
@@ -358,6 +359,7 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 });
             }
             this.gameBoard.forEach(function (element) {
+                element.focused = false;
                 element.draw();
             });
             var image = new Image();
@@ -365,8 +367,13 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
             return image;
         };
         canvas2d.prototype.getElementToJson = function () {
+            return this.elementToJson(this.gameBoard);
+        };
+        canvas2d.prototype.elementToJson = function (list) {
+            var _this = this;
             var resList = [];
-            this.gameBoard.forEach(function (e) {
+            list.forEach(function (e) {
+                console.log(e);
                 var res = {};
                 res.w = e.width;
                 res.h = e.height;
@@ -376,24 +383,28 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 console.log(e.background);
                 if (e instanceof bacicElementDefine_1.default.SpriteObject) {
                     res.type = "sprite";
-                    res.spriteInfo = res.sprite;
+                    res.spriteInfo = e.sprite;
                 }
                 else if (e instanceof bacicElementDefine_1.default.TextObject) {
                     res.type = "text";
-                    res.bordered = e.bordered;
+                    res.bordered = e.bordered || false;
                     res.text = e.text;
                     res.textAligne = e.textAlign;
                     res.color = e.color;
                     res.borderColor = e.borderColor;
-                    res.borderWidth = e.borderWidth;
+                    res.borderWidth = e.borderWidth || 0;
                     res.fontFamily = e.fontFamily;
                     res.fontWidth = e.fontWidth;
                     res.fontSize = e.fontSize;
                     res.background = e.background;
                 }
+                else if (e instanceof bacicElementDefine_1.default.GroupElement) {
+                    res.type = "group";
+                    res.childern = _this.elementToJson(e.children);
+                }
                 resList.push(res);
             });
-            console.log(JSON.stringify(resList));
+            console.log(resList);
             return resList;
         };
         canvas2d.prototype.groupElement = function () {
@@ -405,39 +416,93 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 return !e.focused;
             });
         };
+        canvas2d.prototype.group = function () {
+            var groupList = [];
+            this.gameBoard = this.gameBoard.filter(function (e) {
+                if (e.focused) {
+                    groupList.push(e);
+                }
+                return !e.focused;
+            });
+            if (groupList.length == 0) {
+                return;
+            }
+            var xMax = groupList[0].x, xMin = groupList[0].x, yMax = groupList[0].y, yMin = groupList[0].y, maxWidth = groupList[0].width, maxHeight = groupList[0].height;
+            for (var i = 1; i < groupList.length; i++) {
+                if (groupList[i].x > xMax) {
+                    xMax = groupList[i].x;
+                    maxWidth = groupList[i].width;
+                }
+                if (groupList[i].y > yMax) {
+                    yMax = groupList[i].y;
+                    maxHeight = groupList[i].height;
+                }
+                if (groupList[i].x < xMin) {
+                    xMin = groupList[i].x;
+                }
+                if (groupList[i].y < yMin) {
+                    yMin = groupList[i].y;
+                }
+            }
+            var groupInfo = {
+                x: xMin,
+                y: yMin,
+                type: "group",
+                w: xMax - xMin + maxWidth,
+                h: yMax - yMin + maxHeight,
+                Vx: 0,
+                z: 0,
+                Vy: 0,
+                children: this.elementToJson(groupList)
+            };
+            groupInfo.children.forEach(function (e) {
+                e.x = e.x - xMin;
+                e.y = e.y - yMin;
+            });
+            this.push(this.createElement(groupInfo));
+        };
+        canvas2d.prototype.disGroup = function () {
+            this.gameBoard.forEach(function (e) {
+                if (e.focused && e instanceof bacicElementDefine_1.default.GroupElement) {
+                    e.disGroup();
+                }
+            });
+        };
         return canvas2d;
     }());
     exports.default = canvas2d;
-    var collision = /** @class */ (function () {
-        function collision(type, mode) {
-            this.Collision = [];
-            this.type = type;
-            this.mode = mode || "single";
-            this.isCollision = false;
-        }
-        collision.prototype.overlape = function (obj1, obj2) {
-            return !((obj1.x + obj1.width) < obj2.x || (obj1.y + obj1.height) < obj2.y ||
-                (obj2.x + obj2.width) < obj1.x || (obj2.y + obj2.height) < obj1.y);
-        };
-        collision.prototype.checkCollision = function (obj1, that) {
-            for (var i = 0; i < that.gameBoard.length; i++) {
-                if (that.gameBoard[i].col && obj1.col.type === that.gameBoard[i].col.type && obj1 !== that.gameBoard[i]) {
-                    if (this.overlape(obj1, that.gameBoard[i])) {
-                        obj1.col.isCollision = true;
-                        that.gameBoard[i].col.isCollision = true;
-                        // this.Collision.push(that.gameBoard[i])
-                        if (this.mode === "single") {
-                            break;
-                        }
-                    }
-                    else {
-                        obj1.col.isCollision = false;
-                    }
-                }
-            }
-        };
-        return collision;
-    }());
+    // class collision {
+    //     type: number;
+    //     mode: string;
+    //     Collision: any[] = [];
+    //     isCollision: boolean;
+    //     overlape(obj1: any, obj2: any): boolean {
+    //         return !((obj1.x + obj1.width) < obj2.x || (obj1.y + obj1.height) < obj2.y ||
+    //             (obj2.x + obj2.width) < obj1.x || (obj2.y + obj2.height) < obj1.y)
+    //     }
+    //     checkCollision(obj1: any, that: any): void {
+    //         for (let i = 0; i < that.gameBoard.length; i++) {
+    //             if (that.gameBoard[i].col && obj1.col.type === that.gameBoard[i].col.type && obj1 !== that.gameBoard[i]) {
+    //                 if (this.overlape(obj1, that.gameBoard[i])) {
+    //                     obj1.col.isCollision = true
+    //                     that.gameBoard[i].col.isCollision = true;
+    //                     // this.Collision.push(that.gameBoard[i])
+    //                     if (this.mode === "single") {
+    //                         break;
+    //                     }
+    //                 }
+    //                 else {
+    //                     obj1.col.isCollision = false
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     constructor(type: number, mode?: string) {
+    //         this.type = type;
+    //         this.mode = mode || "single";
+    //         this.isCollision = false;
+    //     }
+    // }
     var offscreenCanvas = /** @class */ (function () {
         function offscreenCanvas() {
             this.isBuild = false;
