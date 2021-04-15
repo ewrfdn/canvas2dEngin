@@ -23,53 +23,45 @@ abstract class ElementObject {
     x: number;
     y: number;
     z: number;
-    Vx: number;
-    Vy: number;
     offscreenCache: any;
     canvas: any
     buildCache() {
-        console.log(1)
-        if(this.lock){
-            return
-        }
         clearTimeout(this.updateTimer)
+        this.lock=true
         this.updateTimer=setTimeout(()=>{
-            this.lock=true
             this.offscreenCache.canvas.width = this.width;
             this.offscreenCache.canvas.height = this.height;
             let ctx = this.offscreenCache.canvas.getContext('2d')
             this.onDraw(ctx)
             this.offscreenCache.isBuild = true;
             this.lock=false
-        },33)
+        },16)
        
     }
-    draw() {
-        // if (!this.offscreenCache.isBuild) {
-        //     this.buildCache()
-        // }
-        if (this.focused) {
-            this.canvas.ctx.strokeStyle = "#F00";
-            this.canvas.ctx.lineWidth = "2";
-            this.canvas.ctx.strokeRect(this.x, this.y, this.width, this.height)
-        }
-        this.canvas.ctx.drawImage(this.offscreenCache.canvas, this.x, this.y)
+    sleep(time:number){
+        return new Promise((resove,reject)=>{
+            setTimeout(()=>{
+                resove(true);
+            },time)
+        })
+    }
+    async draw() {
+            if (this.focused) {
+                this.canvas.ctx.strokeStyle = "#F00";
+                this.canvas.ctx.lineWidth = "2";
+                this.canvas.ctx.strokeRect(this.x, this.y, this.width, this.height)
+            }
+            this.canvas.ctx.drawImage(this.offscreenCache.canvas, this.x, this.y)
     };
-    move(dt: number) {
-        this.x += ~~(this.Vx * dt);
-        this.y += ~~(this.Vy * dt);
-    }
-    step(dt: number) {
-        // this.watchData()
-        this.move(dt);
-        this.onStep(dt);
-    }
+   
+    // step(dt: number) {
+    //     this.move(dt);
+    //     this.onStep(dt);
+    // }
     constructor(info: basicElementInterface, offscreenCache: any,canvas: any,) {
         this.id=new Date().getTime+canvas.gameBoard.length+~~(Math.random()*1000000)
         this._width = info.w || 100;
         this._height = info.h || 100;
-        this.Vx = info.Vx || 0;
-        this.Vy = info.Vy || 0;
         this.x = info.x || 0;
         this.y = info.y || 0;
         this.z = info.z || 0
@@ -158,10 +150,6 @@ class SpriteObject extends ElementObject {
     afterDestoryed() {
     }
     created() {
-    }
-    step(dt: number) {
-        this.move(dt)
-        this.onStep(dt)
     }
     onStep(dt: number) {
     }

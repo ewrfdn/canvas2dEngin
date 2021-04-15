@@ -11,15 +11,13 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
             this.x = 0;
             this.y = 0;
             this.mutipleSelectModel = false;
-            this.displayFrameRate = true;
+            // displayFrameRate: boolean = true;
             this.rate = 0;
             this.clickThrough = false;
             this.lastTime = 0;
             this.maxTime = 1 / 30;
-            this.offScreen = [];
-            this.interval = 0;
+            this.drawTimer = null;
             this.gameBoard = [];
-            this.background = [];
             this.canvas = document.createElement("canvas");
             this.canvas.id = "mainCanvas";
             this.canvas.width = width;
@@ -34,9 +32,9 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
         canvas2d.prototype.allowDrop = function (event) {
             event.preventDefault();
         };
-        canvas2d.prototype.stopLoop = function () {
-            window.cancelAnimationFrame(this.t);
-        };
+        // stopLoop() {
+        //     window.cancelAnimationFrame(this.t)
+        // }
         canvas2d.prototype.enableKeyupEventLisener = function () {
             var _this = this;
             document.addEventListener("keyup", function (e) {
@@ -44,6 +42,7 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                     _this.gameBoard = _this.gameBoard.filter(function (element) {
                         return !element.focused;
                     });
+                    _this.draw();
                 }
                 if (e.key === 'Control') {
                     _this.mutipleSelectModel = false;
@@ -63,7 +62,6 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
             this.root.style.overflow = "hidden";
             this.root.style.position = 'relative';
             this.canvas.addEventListener("click", function (e) {
-                console.log(_this.canvas.getBoundingClientRect());
                 var left = e.clientX - _this.canvas.getBoundingClientRect().x;
                 var top = e.clientY - _this.canvas.getBoundingClientRect().y;
                 var clickFlag = true;
@@ -71,7 +69,6 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 if (controlDiv) {
                     _this.root.removeChild(controlDiv);
                 }
-                console.log(left, top);
                 if (_this.clickThrough) {
                     for (var i = _this.gameBoard.length - 1; i > -1; i--) {
                         if (top > _this.gameBoard[i].y && top < (_this.gameBoard[i].y + _this.gameBoard[i].height) && left > _this.gameBoard[i].x && (_this.gameBoard[i].x + _this.gameBoard[i].width) > left) {
@@ -97,6 +94,7 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                         }
                     }
                 }
+                _this.draw();
             });
         };
         canvas2d.prototype.createHtmlDom = function (elementIndex) {
@@ -140,32 +138,16 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
             return controlPoint;
         };
         canvas2d.prototype.elementOnDragStart = function (event, that) {
-            // event.preventDefault()
-            // event.dataTransfer.dropEffect = "copy";
             event.cancelBubble = true;
-            console.log(event);
-            // that.loop()
         };
         canvas2d.prototype.onResizeStart = function (event, that) {
-            // that.loop()
-            // event.dataTransfer.dropEffect = "copy";
             event.cancelBubble = true;
             console.log(event.target.id);
             event.dataTransfer.setData("text/plain", event.target.id);
+            this.draw();
         };
         canvas2d.prototype.onResize = function (event, changElement, cursorType) {
             event.cancelBubble = true;
-            // if(cursorType==="n-resize"){
-            //     changElement.height+=(event.offsetY/100)
-            //     if(changElement.height<50){
-            //         changElement.height=50
-            //     }
-            // }else if(cursorType=="e-resize"){
-            //     changElement.width+=(event.offsetX/100)
-            //     if(changElement.width<50){
-            //         changElement.width=50
-            //     }
-            // }
         };
         canvas2d.prototype.onResizeEnd = function (event, changElement, cursorType, that) {
             event.cancelBubble = true;
@@ -223,15 +205,14 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 dom.style.width = changElement.width;
                 dom.style.height = changElement.height;
             }
-            // window.setInterval(()=>{
-            //     that.stopLoop()
-            // },5000)
+            this.draw();
         };
         canvas2d.prototype.elementOnDrag = function (event, changElement) {
             event.preventDefault();
             event.cancelBubble = true;
             changElement.x = event.clientX - changElement.width / 2;
             changElement.y = event.clientY - changElement.height / 2;
+            this.draw();
         };
         canvas2d.prototype.elementOnDragEnd = function (event, changElement, that) {
             event.cancelBubble = true;
@@ -244,32 +225,28 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 dom.style.left = changElement.x.toString();
                 dom.style.top = changElement.y.toString();
             }
-            // window.setInterval(()=>{
-            //     that.stopLoop()
-            // },5000)
+            this.draw();
         };
         canvas2d.prototype.disableClickEventLisener = function () {
         };
-        canvas2d.prototype.frameRate = function (dt) {
-            this.interval += dt;
-            if (this.interval > 2) {
-                this.interval = 0;
-                this.rate = ~~(1 / dt);
-            }
-            this.ctx.fillStyle = "rgb(0,255,0)";
-            this.ctx.font = "40px Verdana";
-            this.ctx.fillText("FPS:" + this.rate, 40, 40);
-        };
-        canvas2d.prototype.push = function (obj, type) {
-            if (type === "bg") {
-                this.background.push();
-            }
+        // frameRate(dt: number) {
+        //     this.interval += dt;
+        //     if (this.interval > 2) {
+        //         this.interval = 0;
+        //         this.rate = ~~(1 / dt);
+        //     }
+        //     this.ctx.fillStyle = "rgb(0,255,0)"
+        //     this.ctx.font = "40px Verdana";
+        //     this.ctx.fillText("FPS:" + this.rate, 40, 40)
+        // }
+        canvas2d.prototype.push = function (obj) {
             this.gameBoard.push(obj);
+            this.draw();
         };
-        canvas2d.prototype.removeBg = function (obj) {
-            var p = this.background.indexOf(obj);
-            this.background.splice(p, 1);
-        };
+        // removeBg(obj: any) {
+        //     let p = this.background.indexOf(obj)
+        //     this.background.splice(p, 1);
+        // }
         canvas2d.prototype.remove = function (obj, index) {
             if (index !== undefined) {
                 this.gameBoard.splice(index, 1);
@@ -278,26 +255,18 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 var p = this.gameBoard.indexOf(obj);
                 this.gameBoard.splice(p, 1);
             }
+            this.draw();
         };
         canvas2d.prototype.createElement = function (info) {
             var obj = {};
             var offscreenCache = new offscreenCanvas();
             if (info.type === "round") {
-                //    this.offScreen.push(new offscreenCanvas(document.createElement('canvas')))
-                //    obj=new element.roundObject(info,this.offScreen.length-1)
             }
             else if (info.type === "sprite") {
-                // this.offScreen.push(offscreenCache)
                 obj = new bacicElementDefine_1.default.SpriteObject(info, offscreenCache, this);
-                this.offScreen.push(offscreenCache);
-                // }
             }
             else if (info.type === "rect") {
-                // obj=new element.rectangleObject(info,this)
             }
-            // else if(type==="triangel"){
-            //     obj=new element.rectangleObject(info)
-            // } 
             else if (info.type === "text") {
                 obj = new bacicElementDefine_1.default.TextObject(info, offscreenCache, this);
             }
@@ -315,36 +284,45 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 _this.push(_this.createElement(e));
             });
         };
-        canvas2d.prototype.loop = function () {
+        // loop() {
+        //     let dt = this.lastTime
+        //     this.lastTime = new Date().getTime()
+        //     dt = (this.lastTime - dt) / 1000;
+        //     let tempDt = dt;
+        //     if (dt > this.maxTime) {
+        //         dt = this.maxTime
+        //     }
+        //     this.canvas.width = this.width;
+        //     for (let j = 0; j < this.background.length; j++) {
+        //         this.background[j].draw();
+        //         this.background[j].step(dt)
+        //     }
+        //     for (let i = 0; i < this.gameBoard.length; i++) {
+        //         this.gameBoard[i].draw();
+        //         this.gameBoard[i].step(dt);
+        //     }
+        //     if (this.displayFrameRate) {
+        //         this.frameRate(tempDt);
+        //     }
+        //     this.t = requestAnimationFrame(() => {
+        //         this.loop()
+        //     })
+        // }
+        canvas2d.prototype.draw = function () {
             var _this = this;
-            var dt = this.lastTime;
-            this.lastTime = new Date().getTime();
-            dt = (this.lastTime - dt) / 1000;
-            var tempDt = dt;
-            if (dt > this.maxTime) {
-                dt = this.maxTime;
-            }
-            this.canvas.width = this.width;
-            for (var j = 0; j < this.background.length; j++) {
-                this.background[j].draw();
-                this.background[j].step(dt);
-            }
-            for (var i = 0; i < this.gameBoard.length; i++) {
-                this.gameBoard[i].draw();
-                this.gameBoard[i].step(dt);
-            }
-            if (this.displayFrameRate) {
-                this.frameRate(tempDt);
-            }
-            this.t = requestAnimationFrame(function () {
-                _this.loop();
-            });
+            clearTimeout(this.drawTimer);
+            this.drawTimer = setTimeout(function () {
+                _this.canvas.width = _this.width;
+                for (var i = 0; i < _this.gameBoard.length; i++) {
+                    _this.gameBoard[i].draw();
+                }
+            }, 30);
         };
         canvas2d.prototype.gengratorImg = function (scale) {
             if (scale == undefined || scale < 0) {
                 scale = 1;
             }
-            this.stopLoop();
+            // this.stopLoop()
             this.canvas.width = this.width * scale;
             this.canvas.height = this.height * scale;
             if (scale != 1) {
@@ -380,7 +358,6 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 res.x = e.x;
                 res.y = e.y;
                 res.z = e.z;
-                console.log(e.background);
                 if (e instanceof bacicElementDefine_1.default.SpriteObject) {
                     res.type = "sprite";
                     res.spriteInfo = e.sprite;
@@ -400,11 +377,11 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
                 }
                 else if (e instanceof bacicElementDefine_1.default.GroupElement) {
                     res.type = "group";
-                    res.childern = _this.elementToJson(e.children);
+                    res.children = _this.elementToJson(e.children);
                 }
                 resList.push(res);
             });
-            console.log(resList);
+            console.log(JSON.stringify(resList));
             return resList;
         };
         canvas2d.prototype.groupElement = function () {
@@ -471,38 +448,6 @@ define(["require", "exports", "./elementDefine/bacicElementDefine", "./elementDe
         return canvas2d;
     }());
     exports.default = canvas2d;
-    // class collision {
-    //     type: number;
-    //     mode: string;
-    //     Collision: any[] = [];
-    //     isCollision: boolean;
-    //     overlape(obj1: any, obj2: any): boolean {
-    //         return !((obj1.x + obj1.width) < obj2.x || (obj1.y + obj1.height) < obj2.y ||
-    //             (obj2.x + obj2.width) < obj1.x || (obj2.y + obj2.height) < obj1.y)
-    //     }
-    //     checkCollision(obj1: any, that: any): void {
-    //         for (let i = 0; i < that.gameBoard.length; i++) {
-    //             if (that.gameBoard[i].col && obj1.col.type === that.gameBoard[i].col.type && obj1 !== that.gameBoard[i]) {
-    //                 if (this.overlape(obj1, that.gameBoard[i])) {
-    //                     obj1.col.isCollision = true
-    //                     that.gameBoard[i].col.isCollision = true;
-    //                     // this.Collision.push(that.gameBoard[i])
-    //                     if (this.mode === "single") {
-    //                         break;
-    //                     }
-    //                 }
-    //                 else {
-    //                     obj1.col.isCollision = false
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     constructor(type: number, mode?: string) {
-    //         this.type = type;
-    //         this.mode = mode || "single";
-    //         this.isCollision = false;
-    //     }
-    // }
     var offscreenCanvas = /** @class */ (function () {
         function offscreenCanvas() {
             this.isBuild = false;

@@ -8,24 +8,21 @@ export default class canvas2d {
     height: number;
     ctx: any;
     mutipleSelectModel: boolean = false;
-    displayFrameRate: boolean = true;
+    // displayFrameRate: boolean = true;
     rate: number = 0;
     root: any;
     canvas: any;
     clickThrough: boolean = false
     lastTime: number = 0;
     maxTime: number = 1 / 30;
-    offScreen: any[] = [];
-    t: any;
-    interval: number = 0;
+    drawTimer:any=null
     gameBoard: any[] = [];
-    background: any[] = [];
     allowDrop(event: any) {
         event.preventDefault()
     }
-    stopLoop() {
-        window.cancelAnimationFrame(this.t)
-    }
+    // stopLoop() {
+    //     window.cancelAnimationFrame(this.t)
+    // }
     enableKeyupEventLisener() {//键盘事件监听
         document.addEventListener("keyup", (e: any) => {
 
@@ -33,6 +30,7 @@ export default class canvas2d {
                 this.gameBoard = this.gameBoard.filter(element => {
                     return !element.focused
                 })
+                this.draw()
             }
             if (e.key === 'Control') {
                 this.mutipleSelectModel = false;
@@ -52,7 +50,6 @@ export default class canvas2d {
         this.root.style.overflow = "hidden"
         this.root.style.position = 'relative'
         this.canvas.addEventListener("click", (e: any) => {
-            console.log(this.canvas.getBoundingClientRect())
             let left = e.clientX - this.canvas.getBoundingClientRect().x
             let top = e.clientY - this.canvas.getBoundingClientRect().y
             let clickFlag = true;
@@ -60,7 +57,6 @@ export default class canvas2d {
             if (controlDiv) {
                 this.root.removeChild(controlDiv)
             }
-            console.log(left, top)
             if (this.clickThrough) {
                 for (let i = this.gameBoard.length - 1; i > -1; i--) {
                     if (top > this.gameBoard[i].y && top < (this.gameBoard[i].y + this.gameBoard[i].height) && left > this.gameBoard[i].x && (this.gameBoard[i].x + this.gameBoard[i].width) > left) {
@@ -84,6 +80,7 @@ export default class canvas2d {
                     }
                 }
             }
+            this.draw()
         })
 
     }
@@ -126,32 +123,17 @@ export default class canvas2d {
         return controlPoint
     }
     elementOnDragStart(event: any, that: any) {
-        // event.preventDefault()
-        // event.dataTransfer.dropEffect = "copy";
         event.cancelBubble = true;
-        console.log(event)
-        // that.loop()
+
     }
     onResizeStart(event: any, that: any) {
-        // that.loop()
-        // event.dataTransfer.dropEffect = "copy";
         event.cancelBubble = true;
         console.log(event.target.id)
         event.dataTransfer.setData("text/plain", event.target.id)
+        this.draw()
     }
     onResize(event: any, changElement: any, cursorType: string) {
         event.cancelBubble = true;
-        // if(cursorType==="n-resize"){
-        //     changElement.height+=(event.offsetY/100)
-        //     if(changElement.height<50){
-        //         changElement.height=50
-        //     }
-        // }else if(cursorType=="e-resize"){
-        //     changElement.width+=(event.offsetX/100)
-        //     if(changElement.width<50){
-        //         changElement.width=50
-        //     }
-        // }
 
     }
     onResizeEnd(event: any, changElement: any, cursorType: string, that: any) {
@@ -207,9 +189,7 @@ export default class canvas2d {
             dom.style.width = changElement.width;
             dom.style.height = changElement.height;
         }
-        // window.setInterval(()=>{
-        //     that.stopLoop()
-        // },5000)
+        this.draw()
 
     }
     elementOnDrag(event: any, changElement: any) {
@@ -217,6 +197,7 @@ export default class canvas2d {
         event.cancelBubble = true;
         changElement.x = event.clientX - changElement.width / 2
         changElement.y = event.clientY - changElement.height / 2
+        this.draw()
     }
     elementOnDragEnd(event: any, changElement: any, that: any) {
         event.cancelBubble = true;
@@ -229,33 +210,29 @@ export default class canvas2d {
             dom.style.left = changElement.x.toString();
             dom.style.top = changElement.y.toString()
         }
-        // window.setInterval(()=>{
-        //     that.stopLoop()
-        // },5000)
+        this.draw()
     }
     disableClickEventLisener() {
     }
-    frameRate(dt: number) {
-        this.interval += dt;
-        if (this.interval > 2) {
-            this.interval = 0;
-            this.rate = ~~(1 / dt);
-        }
-        this.ctx.fillStyle = "rgb(0,255,0)"
-        this.ctx.font = "40px Verdana";
-        this.ctx.fillText("FPS:" + this.rate, 40, 40)
+    // frameRate(dt: number) {
+    //     this.interval += dt;
+    //     if (this.interval > 2) {
+    //         this.interval = 0;
+    //         this.rate = ~~(1 / dt);
+    //     }
+    //     this.ctx.fillStyle = "rgb(0,255,0)"
+    //     this.ctx.font = "40px Verdana";
+    //     this.ctx.fillText("FPS:" + this.rate, 40, 40)
 
-    }
-    push(obj: any, type?: string): void {
-        if (type === "bg") {
-            this.background.push()
-        }
+    // }
+    push(obj: any): void {
         this.gameBoard.push(obj)
+        this.draw()
     }
-    removeBg(obj: any) {
-        let p = this.background.indexOf(obj)
-        this.background.splice(p, 1);
-    }
+    // removeBg(obj: any) {
+    //     let p = this.background.indexOf(obj)
+    //     this.background.splice(p, 1);
+    // }
     remove(obj: any, index?: number): void {
         if (index !== undefined) {
             this.gameBoard.splice(index, 1);
@@ -263,25 +240,17 @@ export default class canvas2d {
             let p = this.gameBoard.indexOf(obj)
             this.gameBoard.splice(p, 1);
         }
+        this.draw()
     }
     createElement(info: any): object {
         var obj: object = {}
         let offscreenCache = new offscreenCanvas()
-
         if (info.type === "round") {
-            //    this.offScreen.push(new offscreenCanvas(document.createElement('canvas')))
-            //    obj=new element.roundObject(info,this.offScreen.length-1)
         } else if (info.type === "sprite") {
-            // this.offScreen.push(offscreenCache)
             obj = new element.SpriteObject(info, offscreenCache, this)
-            this.offScreen.push(offscreenCache)
-            // }
         } else if (info.type === "rect") {
-            // obj=new element.rectangleObject(info,this)
         }
-        // else if(type==="triangel"){
-        //     obj=new element.rectangleObject(info)
-        // } 
+
         else if (info.type === "text") {
             obj = new element.TextObject(info, offscreenCache, this)
         }
@@ -311,36 +280,46 @@ export default class canvas2d {
         this.root.appendChild(this.canvas)
         this.ctx = this.canvas.getContext('2d')
     }
-    loop() {
-        let dt = this.lastTime
-        this.lastTime = new Date().getTime()
-        dt = (this.lastTime - dt) / 1000;
-        let tempDt = dt;
-        if (dt > this.maxTime) {
-            dt = this.maxTime
-        }
-        this.canvas.width = this.width;
-        for (let j = 0; j < this.background.length; j++) {
-            this.background[j].draw();
-            this.background[j].step(dt)
-        }
-        for (let i = 0; i < this.gameBoard.length; i++) {
-            this.gameBoard[i].draw();
-            this.gameBoard[i].step(dt);
-        }
-        if (this.displayFrameRate) {
-            this.frameRate(tempDt);
-        }
-        this.t = requestAnimationFrame(() => {
-            this.loop()
-        })
+    // loop() {
+    //     let dt = this.lastTime
+    //     this.lastTime = new Date().getTime()
+    //     dt = (this.lastTime - dt) / 1000;
+    //     let tempDt = dt;
+    //     if (dt > this.maxTime) {
+    //         dt = this.maxTime
+    //     }
+    //     this.canvas.width = this.width;
+    //     for (let j = 0; j < this.background.length; j++) {
+    //         this.background[j].draw();
+    //         this.background[j].step(dt)
+    //     }
+    //     for (let i = 0; i < this.gameBoard.length; i++) {
+    //         this.gameBoard[i].draw();
+    //         this.gameBoard[i].step(dt);
+    //     }
+    //     if (this.displayFrameRate) {
+    //         this.frameRate(tempDt);
+    //     }
+    //     this.t = requestAnimationFrame(() => {
+    //         this.loop()
+    //     })
 
+    // }
+    draw() {
+        clearTimeout(this.drawTimer)
+        this.drawTimer=setTimeout(()=>{
+            this.canvas.width = this.width;
+            for (let i = 0; i < this.gameBoard.length; i++) {
+                this.gameBoard[i].draw();
+            }
+        },30)
+        
     }
     public gengratorImg(scale: number): any {
         if (scale == undefined || scale < 0) {
             scale = 1
         }
-        this.stopLoop()
+        // this.stopLoop()
         this.canvas.width = this.width * scale;
         this.canvas.height = this.height * scale;
         if (scale != 1) {
@@ -355,7 +334,7 @@ export default class canvas2d {
             })
         }
         this.gameBoard.forEach(element => {
-            element.focused=false;
+            element.focused = false;
             element.draw()
         })
         let image = new Image();
@@ -365,7 +344,7 @@ export default class canvas2d {
     public getElementToJson(): Array<basicElementInterface> {
         return this.elementToJson(this.gameBoard)
     }
-    public elementToJson(list:Array<any>):Array<basicElementInterface>{
+    public elementToJson(list: Array<any>): Array<basicElementInterface> {
         let resList: Array<basicElementInterface> = []
         list.forEach(e => {
             console.log(e)
@@ -375,130 +354,96 @@ export default class canvas2d {
             res.x = e.x;
             res.y = e.y;
             res.z = e.z;
-            console.log(e.background)
             if (e instanceof element.SpriteObject) {
                 res.type = "sprite";
                 res.spriteInfo = e.sprite;
             } else if (e instanceof element.TextObject) {
                 res.type = "text"
-                res.bordered = e.bordered||false;
+                res.bordered = e.bordered || false;
                 res.text = e.text;
                 res.textAligne = e.textAlign;
                 res.color = e.color;
                 res.borderColor = e.borderColor;
-                res.borderWidth = e.borderWidth||0;
+                res.borderWidth = e.borderWidth || 0;
                 res.fontFamily = e.fontFamily;
                 res.fontWidth = e.fontWidth;
                 res.fontSize = e.fontSize;
                 res.background = e.background;
             }
-            else if(e instanceof element.GroupElement){
-                res.type="group";
-                res.childern=this.elementToJson(e.children);
+            else if (e instanceof element.GroupElement) {
+                res.type = "group";
+                res.children = this.elementToJson(e.children);
             }
             resList.push(res)
         })
-        console.log(resList)
+        console.log(JSON.stringify(resList))
         return resList
     }
-    public groupElement(){
-        let groupres=[]
-        let e=
-        this.gameBoard=this.gameBoard.filter(e=>{
-            if(e.focused){
-                groupres.push(e)
-            }
-            return !e.focused
-        })
+    public groupElement() {
+        let groupres = []
+        let e =
+            this.gameBoard = this.gameBoard.filter(e => {
+                if (e.focused) {
+                    groupres.push(e)
+                }
+                return !e.focused
+            })
 
     }
-    public group(){
-        let groupList:Array<any>=[]
-        this.gameBoard=this.gameBoard.filter(e=>{
-            if(e.focused){
+    public group() {
+        let groupList: Array<any> = []
+        this.gameBoard = this.gameBoard.filter(e => {
+            if (e.focused) {
                 groupList.push(e)
             }
             return !e.focused
         })
-        if(groupList.length==0){
+        if (groupList.length == 0) {
             return
         }
-        let xMax=groupList[0].x,xMin=groupList[0].x,yMax=groupList[0].y,yMin=groupList[0].y,maxWidth=groupList[0].width,maxHeight=groupList[0].height
-        for(let i=1;i<groupList.length;i++){
-            if(groupList[i].x>xMax){
-                xMax=groupList[i].x;
-                maxWidth=groupList[i].width
+        let xMax = groupList[0].x, xMin = groupList[0].x, yMax = groupList[0].y, yMin = groupList[0].y, maxWidth = groupList[0].width, maxHeight = groupList[0].height
+        for (let i = 1; i < groupList.length; i++) {
+            if (groupList[i].x > xMax) {
+                xMax = groupList[i].x;
+                maxWidth = groupList[i].width
             }
-            if(groupList[i].y>yMax){
-                yMax=groupList[i].y
-                maxHeight=groupList[i].height
+            if (groupList[i].y > yMax) {
+                yMax = groupList[i].y
+                maxHeight = groupList[i].height
             }
-            if(groupList[i].x<xMin){
-                xMin=groupList[i].x;
+            if (groupList[i].x < xMin) {
+                xMin = groupList[i].x;
             }
-            if(groupList[i].y<yMin){
-                yMin=groupList[i].y
+            if (groupList[i].y < yMin) {
+                yMin = groupList[i].y
             }
         }
-        let groupInfo:GroupElementInterface={
-            x:xMin,
-            y:yMin,
-            type:"group",
-            w:xMax-xMin+maxWidth,
-            h:yMax-yMin+maxHeight,
-            Vx:0,
-            z:0,
-            Vy:0,
-            children:this.elementToJson(groupList)
+        let groupInfo: GroupElementInterface = {
+            x: xMin,
+            y: yMin,
+            type: "group",
+            w: xMax - xMin + maxWidth,
+            h: yMax - yMin + maxHeight,
+            Vx: 0,
+            z: 0,
+            Vy: 0,
+            children: this.elementToJson(groupList)
         }
-        groupInfo.children.forEach(e=>{
-            e.x=e.x-xMin;
-            e.y=e.y-yMin;
+        groupInfo.children.forEach(e => {
+            e.x = e.x - xMin;
+            e.y = e.y - yMin;
         })
         this.push(this.createElement(groupInfo))
+
     }
-    public disGroup(){
-        this.gameBoard.forEach(e=>{
-            if(e.focused&&e instanceof element.GroupElement){
+    public disGroup() {
+        this.gameBoard.forEach(e => {
+            if (e.focused && e instanceof element.GroupElement) {
                 e.disGroup()
             }
         })
     }
 }
-// class collision {
-//     type: number;
-//     mode: string;
-//     Collision: any[] = [];
-//     isCollision: boolean;
-//     overlape(obj1: any, obj2: any): boolean {
-//         return !((obj1.x + obj1.width) < obj2.x || (obj1.y + obj1.height) < obj2.y ||
-//             (obj2.x + obj2.width) < obj1.x || (obj2.y + obj2.height) < obj1.y)
-//     }
-//     checkCollision(obj1: any, that: any): void {
-//         for (let i = 0; i < that.gameBoard.length; i++) {
-//             if (that.gameBoard[i].col && obj1.col.type === that.gameBoard[i].col.type && obj1 !== that.gameBoard[i]) {
-//                 if (this.overlape(obj1, that.gameBoard[i])) {
-//                     obj1.col.isCollision = true
-//                     that.gameBoard[i].col.isCollision = true;
-//                     // this.Collision.push(that.gameBoard[i])
-//                     if (this.mode === "single") {
-//                         break;
-//                     }
-//                 }
-//                 else {
-//                     obj1.col.isCollision = false
-
-//                 }
-//             }
-
-//         }
-//     }
-//     constructor(type: number, mode?: string) {
-//         this.type = type;
-//         this.mode = mode || "single";
-//         this.isCollision = false;
-//     }
-// }
 class offscreenCanvas {
     canvas: any;
     isBuild: boolean = false

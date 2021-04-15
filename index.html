@@ -107,7 +107,7 @@
             spriteInfo: sprite
         }
         function ce() {
-            for(let i=0;i<10000;i++){
+            for(let i=0;i<1000;i++){
                 info.x=Math.random()*1500
             info.y=Math.random()*800
             var b = newBoard.createElement(info)
@@ -119,7 +119,6 @@
             newBoard.getElementToJson()
         }
         var cl = function () {
-            newBoard.loop()
             newBoard.enableClickEventLisener()
             newBoard.enableKeyupEventLisener()
         }
